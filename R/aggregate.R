@@ -395,6 +395,13 @@ local_moment <- function(Z, R, n, gcov, M, intercept, shrink_qeff = 20) {
 #' @param VclassA,VclassB Optional class trait covariances (q-by-q), one
 #'   matrix for all genes or a list with one per gene.
 #' @param n_boot Conditional bootstrap draws (0 for the normal reference).
+#' @param n_boot_max,boot_min_exceed Adaptive bootstrap: pairs with fewer
+#'   than \code{boot_min_exceed} bootstrap statistics at least as extreme as
+#'   their own get further draws, in rounds of 10 times the draws so far, up
+#'   to \code{n_boot_max} draws in total. The smallest attainable p is then
+#'   \code{1/(n_boot_max + 1)} rather than \code{1/(n_boot + 1)}, so
+#'   q-values over many pairs are not dominated by ties at the floor. Set
+#'   \code{n_boot_max = n_boot} for a fixed number of draws.
 #' @param orientation \code{"both"} (default) or \code{"A"} (A given B only).
 #' @param n_sim Gaussian draws for the max-|T| adjustment when
 #'   \code{n_boot = 0} (0 to skip).
@@ -405,8 +412,10 @@ local_moment <- function(Z, R, n, gcov, M, intercept, shrink_qeff = 20) {
 #'   within the window pair), \code{p_norm_diagnostic} (normal reference,
 #'   a diagnostic only when the bootstrap ran), \code{boot_sd_A} and
 #'   \code{boot_sd_B} (SD of the bootstrap studentised statistic in each
-#'   orientation; well below 1 means the plug-in z is strongly
+#'   orientation, from the first \code{n_boot} draws; well below 1 means the plug-in z is strongly
 #'   self-normalised and the bootstrap, not the normal reference, sets p),
+#'   \code{n_boot_used} (draws behind each p-value, the smaller of the two
+#'   orientations),
 #'   the GLS-type null
 #'   \code{se_gls} and \code{z_gls} (model on both sides), the diagnostics
 #'   \code{R_AB} (\eqn{(Sy)'\Sigma_x(Sy)/tr(S\Sigma_x S\Sigma_y)};
@@ -420,6 +429,7 @@ local_moment <- function(Z, R, n, gcov, M, intercept, shrink_qeff = 20) {
 lrcp_gene <- function(ZA, ZB, RA, RB, VA = diag(nrow(ZA)), VB = diag(nrow(ZB)),
                       n, gcov, M, intercept = NULL, GA = NULL, GB = NULL,
                       VclassA = NULL, VclassB = NULL, n_boot = 1000,
+                      n_boot_max = 1e5, boot_min_exceed = 10,
                       orientation = c("both", "A"), n_sim = 10000,
                       shrink_qeff = 20) {
   orientation <- match.arg(orientation)
@@ -467,9 +477,14 @@ lrcp_gene <- function(ZA, ZB, RA, RB, VA = diag(nrow(ZA)), VB = diag(nrow(ZB)),
       var <- outer(diag(MR), diag(KG)) + outer(diag(MG), diag(KT))
       return(list(C = C, var = var / ss^2))
     }
+    fac <- NULL
     if (is.null(Vc1)) {
+      # Cov(vec C) = (KG (x) MR + KT (x) MG) / ss^2, kept in factored form:
+      # the full (n1 n2)^2 matrix is never built
       KT <- crossprod(sY, Tm %*% sY)
-      V <- (kronecker(KG, MR) + kronecker(KT, MG)) / ss^2
+      fac <- list(KG = KG, MR = MR, KT = KT, MG = MG)
+      V <- NULL
+      var <- (outer(diag(MR), diag(KG)) + outer(diag(MG), diag(KT))) / ss^2
     } else {
       V <- kronecker(KG, MR)
       dg <- sqrt(pmax(diag(MG), 1e-300))
@@ -480,6 +495,7 @@ lrcp_gene <- function(ZA, ZB, RA, RB, VA = diag(nrow(ZA)), VB = diag(nrow(ZB)),
         V[ii, kk] <- V[ii, kk] + crossprod(sY, Vik %*% sY)
       }
       V <- V / ss^2
+      var <- matrix(diag(V), n1)
     }
     vg <- RAB <- eB <- matrix(0, n1, n2)
     for (i in seq_len(n1)) {
@@ -493,52 +509,86 @@ lrcp_gene <- function(ZA, ZB, RA, RB, VA = diag(nrow(ZA)), VB = diag(nrow(ZB)),
     for (j in seq_len(n2))
       eB[, j] <- (sum(s * Y[j, ]^2) - tR2[j] * sum(s * diag(intercept))) /
         (tG2[j] * sum(s * diag(Tm)))
-    list(C = C, V = V, var = matrix(diag(V), n1), vg = vg, RAB = RAB, eB = eB)
+    list(C = C, V = V, fac = fac, var = var, vg = vg, RAB = RAB, eB = eB)
   }
   # conditional bootstrap of the studentised statistic for window 1 given window 2
+  # Adaptive: after n_boot draws, pairs with fewer than boot_min_exceed
+  # exceedances get further rounds (each 10 times the draws so far, up to
+  # n_boot_max in total), so p is not floored at 1/(n_boot + 1). Each round
+  # draws only for the genes of window 1 and 2 that still need it.
   boot <- function(Z1, Z2, R1, R2, V1, V2, G1, G2, fix1, z0) {
     R1h <- psd_factor(R1); G1h <- psd_factor(G1)
     Ch <- psd_factor(intercept); Th <- psd_factor(Tm)
     m1 <- nrow(Z1)
-    exceed <- matrix(0, nrow(z0), ncol(z0)); exceed_max <- matrix(0, nrow(z0), ncol(z0))
-    sz <- sz2 <- matrix(0, nrow(z0), ncol(z0))
-    for (b in seq_len(n_boot)) {
-      Zs <- R1h %*% matrix(stats::rnorm(m1 * q), m1) %*% t(Ch) +
-        G1h %*% matrix(stats::rnorm(m1 * q), m1) %*% t(Th)
-      Gs <- if (fix1) G1 else lm_(Zs, R1)
-      st <- stat(Zs, Z2, R1, R2, V1, V2, Gs, G2, diag_only = TRUE)
-      zs <- st$C / sqrt(pmax(st$var, 1e-300))
-      sz <- sz + zs; sz2 <- sz2 + zs^2
-      zs <- abs(zs)
-      exceed <- exceed + (zs >= abs(z0))
-      exceed_max <- exceed_max + (max(zs) >= abs(z0))
+    d0 <- dim(z0); az0 <- abs(z0)
+    exceed <- matrix(0, d0[1], d0[2]); exceed_max <- matrix(0, d0[1], d0[2])
+    nb <- nbm <- matrix(0, d0[1], d0[2])
+    sz <- sz2 <- matrix(0, d0[1], d0[2])
+    draw <- function(B, ii, jj, first) {
+      for (b in seq_len(B)) {
+        Zs <- R1h %*% matrix(stats::rnorm(m1 * q), m1) %*% t(Ch) +
+          G1h %*% matrix(stats::rnorm(m1 * q), m1) %*% t(Th)
+        Gs <- if (fix1) G1 else lm_(Zs, R1)
+        st <- stat(Zs, Z2, R1, R2, V1[, ii, drop = FALSE], V2[, jj, drop = FALSE], Gs, G2,
+                   diag_only = TRUE)
+        zs <- st$C / sqrt(pmax(st$var, 1e-300))
+        if (first) {
+          sz <<- sz + zs; sz2 <<- sz2 + zs^2
+          exceed_max <<- exceed_max + (max(abs(zs)) >= az0)
+        }
+        exceed[ii, jj] <<- exceed[ii, jj] + (abs(zs) >= az0[ii, jj, drop = FALSE])
+      }
+      nb[ii, jj] <<- nb[ii, jj] + B
     }
-    list(p = (1 + exceed) / (n_boot + 1), p_maxT = (1 + exceed_max) / (n_boot + 1),
-         sd = sqrt(pmax(sz2 / n_boot - (sz / n_boot)^2, 0)))
+    draw(n_boot, seq_len(d0[1]), seq_len(d0[2]), TRUE)
+    nbm[] <- n_boot
+    repeat {
+      need <- exceed < boot_min_exceed & nb < n_boot_max
+      if (!any(need)) break
+      ii <- which(rowSums(need) > 0); jj <- which(colSums(need) > 0)
+      B <- min(9 * max(nb[need]), n_boot_max - max(nb[need]))
+      if (B <= 0) break
+      # pairs in the ii x jj rectangle that already have enough draws also
+      # receive these draws; their p stays (1 + exceed) / (nb + 1)
+      draw(B, ii, jj, FALSE)
+    }
+    list(p = (1 + exceed) / (nb + 1), p_maxT = (1 + exceed_max) / (nbm + 1),
+         sd = sqrt(pmax(sz2 / n_boot - (sz / n_boot)^2, 0)), n_boot = nb)
   }
   nA <- ncol(VA); nB <- ncol(VB)
   VcA <- as_list(VclassA, nA); VcB <- as_list(VclassB, nB)
   st <- stat(ZA, ZB, RA, RB, VA, VB, GA, GB, VcA, VcB)
-  se <- matrix(sqrt(pmax(diag(st$V), 0)), nrow(st$C))
+  se <- sqrt(pmax(st$var, 0))
   z <- st$C / se
   p_norm <- 2 * stats::pnorm(-abs(z))
   p <- p_norm
-  p_maxT <- boot_sd_A <- boot_sd_B <- NULL
+  p_maxT <- boot_sd_A <- boot_sd_B <- n_boot_used <- NULL
   if (n_boot > 0 && is.null(VcA)) {
     bA <- boot(ZA, ZB, RA, RB, VA, VB, GA, GB, fixA, z)
-    p <- bA$p; p_maxT <- bA$p_maxT; boot_sd_A <- bA$sd
+    p <- bA$p; p_maxT <- bA$p_maxT; boot_sd_A <- bA$sd; n_boot_used <- bA$n_boot
     if (orientation == "both") {
       sB <- stat(ZB, ZA, RB, RA, VB, VA, GB, GA)
       zB <- sB$C / sqrt(pmax(sB$var, 1e-300))
       bB <- boot(ZB, ZA, RB, RA, VB, VA, GB, GA, fixB, zB)
       p <- pmax(p, t(bB$p)); p_maxT <- pmax(p_maxT, t(bB$p_maxT)); boot_sd_B <- t(bB$sd)
+      n_boot_used <- pmin(n_boot_used, t(bB$n_boot))
     }
   } else if (n_sim > 0) {
-    sd <- sqrt(pmax(diag(st$V), 1e-300))
-    Cor <- st$V / outer(sd, sd)
-    L <- psd_factor(Cor)
-    sims <- L %*% matrix(stats::rnorm(nrow(L) * n_sim), nrow(L))
-    mx <- apply(abs(sims), 2, max)
+    sd <- sqrt(pmax(st$var, 1e-300))
+    if (is.null(st$fac)) {
+      L <- psd_factor(st$V / outer(as.vector(sd), as.vector(sd)))
+      mx <- apply(abs(L %*% matrix(stats::rnorm(nrow(L) * n_sim), nrow(L))), 2, max)
+    } else {
+      # draw C* ~ N(0, V) as a matrix normal sum, one n1 x n2 matrix at a time
+      f <- st$fac; n1 <- nrow(f$MR); n2 <- nrow(f$KG)
+      a1 <- psd_factor(f$MR); b1 <- psd_factor(f$KG)
+      a2 <- psd_factor(f$MG); b2 <- psd_factor(f$KT)
+      mx <- vapply(seq_len(n_sim), function(b) {
+        Cs <- a1 %*% matrix(stats::rnorm(n1 * n2), n1) %*% t(b1) +
+          a2 %*% matrix(stats::rnorm(n1 * n2), n1) %*% t(b2)
+        max(abs(Cs) / (sd * ss))
+      }, 0)
+    }
     p_maxT <- matrix(vapply(abs(as.vector(z)), function(t) mean(mx >= t), 0), nrow(st$C))
   }
   se_gls <- sqrt(pmax(st$vg, 0))
@@ -551,12 +601,15 @@ lrcp_gene <- function(ZA, ZB, RA, RB, VA = diag(nrow(ZA)), VB = diag(nrow(ZB)),
   # orientation-free Q on tag level (model null with the plug-in G_A)
   tl <- stat(ZA, ZB, RA, RB, diag(nrow(ZA)), diag(nrow(ZB)), GA, GB)
   Q <- sum(tl$C^2)
-  ev <- eigen(tl$V, symmetric = TRUE, only.values = TRUE)$values
-  ev <- ev[ev > 0]
-  # Liu-Satterthwaite: Q ~ a chi2_d, a = sum ev^2 / sum ev, d = (sum ev)^2 / sum ev^2
-  a <- sum(ev^2) / sum(ev); d <- sum(ev)^2 / sum(ev^2)
+  # Liu-Satterthwaite: Q ~ a chi2_d, a = tr(V^2) / tr(V), d = tr(V)^2 / tr(V^2),
+  # from the Kronecker factors (tr(A (x) B) = tr A tr B)
+  f <- tl$fac; tr <- function(A, B) sum(A * B)
+  t1 <- (sum(diag(f$KG)) * sum(diag(f$MR)) + sum(diag(f$KT)) * sum(diag(f$MG))) / ss^2
+  t2 <- (tr(f$KG, f$KG) * tr(f$MR, f$MR) + 2 * tr(f$KG, f$KT) * tr(f$MR, f$MG) +
+           tr(f$KT, f$KT) * tr(f$MG, f$MG)) / ss^4
+  a <- t2 / t1; d <- t1^2 / t2
   list(C = st$C, se = se, z = z, p = p, p_maxT = p_maxT, p_norm_diagnostic = p_norm,
-       boot_sd_A = boot_sd_A, boot_sd_B = boot_sd_B,
+       boot_sd_A = boot_sd_A, boot_sd_B = boot_sd_B, n_boot_used = n_boot_used,
        se_gls = se_gls, z_gls = st$C / se_gls, R_AB = st$RAB, e_B = st$eB,
        q_eff_class = qe, Q = Q, p_Q = stats::pchisq(Q / a, d, lower.tail = FALSE))
 }

@@ -7,6 +7,8 @@
   * `run_lrcp()` screens tags with W > 0 at LRCQ FDR q < 0.05 (new arguments `prescreen = "fdr"` and `q_max`). The old screen on `w_raw >= threshold` stays available as `prescreen = "threshold"`.
   * Command line: `lrcpq lrcq` uses OLS with skewness correction (`--no-skew` turns it off; `--skew` is no longer needed). `lrcpq lrcp` uses the FDR prescreen (`--prescreen threshold --threshold 10` for the old behaviour; `--q` sets the level).
   * To reproduce 0.2 results: `run_lrcq(..., method = "wls", rectify = "C", skew = FALSE)` and `run_lrcp(..., prescreen = "threshold", threshold = 10)`.
+* **Adaptive bootstrap in `lrcp_gene()` and `run_lrcp()`.** A pair whose bootstrap p-value is near the floor 1/(n_boot + 1) (fewer than `boot_min_exceed = 10` exceedances) gets further draws, in rounds of 10 times the draws so far, up to `n_boot_max = 1e5` (CLI `--n-boot-max`). Strong pairs no longer tie at the floor, so their q-values are informative. Other pairs keep their p-values. The draws behind each p-value are reported (`n_boot_used`; column `n_boot` in `run_lrcp()`). `n_boot_max = n_boot` gives the 0.2 behaviour.
+* `lrcp_gene()` no longer builds the (n1 n2)-by-(n1 n2) covariance of the gene-pair matrix: SEs, the max-|T| simulation and the Liu-Satterthwaite `p_Q` now use its Kronecker factors. Results are unchanged; memory is now O(n1^2 + n2^2) without a class null.
 
 # lrcpq 0.2.1
 

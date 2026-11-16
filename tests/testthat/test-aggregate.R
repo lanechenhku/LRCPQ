@@ -41,7 +41,7 @@ test_that("gene-level LRCP null is calibrated under correlated, overlapping trai
     Z <- simulate_lrcpq(blocks, n = n, w = w, gcov = gc$gcov, intercept = C, M = M)$Z
     R1 <- blocks[[1]]
     lrcp_gene(Z[TA, ], Z[TB, ], R1[TA, TA], R1[TA, TA], V, V, n, gc$gcov, M, C,
-              GA = (R1 %*% (w[1:30] * R1))[TA, TA], n_sim = 0)$z
+              GA = (R1 %*% (w[1:30] * R1))[TA, TA], n_boot = 0, n_sim = 0)$z
   })
   expect_lt(abs(sd(as.vector(z)) - 1), 0.12)
 })
@@ -85,7 +85,7 @@ test_that("class null is calibrated for non-separable loci; model null is not", 
   r <- t(replicate(300, {
     xa <- draw(1); xb <- draw(1)
     a <- list(xa, xb, matrix(1), matrix(1), n = n, gcov = gc$gcov, M = M, intercept = C,
-              GA = matrix(w), GB = matrix(w), n_sim = 0)
+              GA = matrix(w), GB = matrix(w), n_boot = 0, n_sim = 0)
     c(do.call(lrcp_gene, a)$z,
       suppressWarnings(do.call(lrcp_gene, c(a, list(VclassA = cc$V, VclassB = cc$V))))$z)
   }))
@@ -110,10 +110,32 @@ test_that("burden null: local-moment bootstrap is valid where diagonal-only proj
     vA <- pmax(local_variance(ZA, R1, 1:9, n, gc$gcov, M, C), 0)
     d <- lrcp_gene(ZA, ZB, R1, R1, V, V, n, gc$gcov, M, C, GA = R1 %*% (vA * R1),
                    n_boot = 0, n_sim = 0)
-    b <- lrcp_gene(ZA, ZB, R1, R1, V, V, n, gc$gcov, M, C, n_boot = 100)
+    b <- lrcp_gene(ZA, ZB, R1, R1, V, V, n, gc$gcov, M, C, n_boot = 100, n_boot_max = 100)
     c(d$p, b$p, b$p_maxT)
   }))
   expect_gt(mean(r[, 1] < 0.05), 0.09)
   expect_lt(mean(r[, 2] < 0.05), 0.09)
   expect_gt(mean(r[, 2] < 0.05), 0.005)
+})
+
+test_that("adaptive bootstrap lifts the p floor and leaves other pairs unchanged", {
+  set.seed(71)
+  blocks <- make_ld_ar1(c(8, 8), 0.3); m <- 16
+  w <- numeric(m); w[c(2, 6, 10, 14)] <- 200
+  Rb <- as.matrix(make_Rb(m, "pairs", pairs = rbind(c(2, 10)), pair_rho = 0.95))
+  q <- 40; gc <- make_gcov(q, h2 = rep(0.3, q), type = "cluster", rg = 0.3, n_clusters = 4)
+  C <- make_intercept(q, 1, 0.2); n <- rep(3e5, q); M <- 1e5
+  Z <- simulate_lrcpq(blocks, n = n, w = w, Rb = Rb, gcov = gc$gcov, intercept = C, M = M)$Z
+  R1 <- blocks[[1]]; tg <- c(2, 6)
+  args <- list(Z[tg, ], Z[8 + tg, ], R1[tg, tg], R1[tg, tg], n = n, gcov = gc$gcov, M = M,
+               intercept = C, n_boot = 50)
+  set.seed(1); fixed <- do.call(lrcp_gene, c(args, n_boot_max = 50))
+  set.seed(1); adapt <- do.call(lrcp_gene, c(args, n_boot_max = 5000))
+  expect_true(all(fixed$n_boot_used == 50))
+  floor <- fixed$p <= 10 / 51
+  expect_true(any(floor))
+  expect_true(all(adapt$n_boot_used[floor] > 50))
+  expect_true(all(adapt$n_boot_used[!floor] >= 50))
+  expect_lt(min(adapt$p), 1 / 51)
+  expect_equal(adapt$C, fixed$C)
 })

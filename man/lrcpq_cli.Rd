@@ -30,7 +30,7 @@ modelled on \code{ldsc.py}. Commands:
     \code{PREFIX.lrcq.tsv.gz}, \code{PREFIX.stage12.rds}, \code{PREFIX.input.rds}.}
   \item{\code{lrcp}}{\code{--lrcq PREFIX [--prescreen fdr|threshold] [--q 0.05]
     [--threshold 10] [--z-min 2]
-    [--min-distance 5e6] [--class-null] [--n-boot 1000] --out PREFIX}: stage 4
+    [--min-distance 5e6] [--class-null] [--n-boot 1000] [--n-boot-max 1e5] --out PREFIX}: stage 4
     on the candidates of an \code{lrcq} run ([run_lrcp()]); writes
     \code{PREFIX.lrcp.tsv.gz}.}
 }

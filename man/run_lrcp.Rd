@@ -24,6 +24,7 @@ run_lrcp(
   min_abs_cor = 0.5,
   min_class_loci = 5,
   n_boot = 1000,
+  n_boot_max = 1e+05,
   mle = FALSE
 )
 }
@@ -66,6 +67,10 @@ chromosome.}
 \item{n_boot}{Conditional bootstrap draws for the conditional test
 ([lrcp_gene()], S8.2a; 0 for the normal reference). Ignored with the
 class null, which uses the normal reference.}
+
+\item{n_boot_max}{Adaptive bootstrap cap ([lrcp_gene()]): pairs whose
+p-value sits near \code{1/(n_boot + 1)} get further draws, up to this
+many, so tied p-values at the floor do not swamp the q-values.}
 
 \item{mle}{Also run [lrcp_mle()] per window pair.}
 }

@@ -20,6 +20,8 @@ lrcp_gene(
   VclassA = NULL,
   VclassB = NULL,
   n_boot = 1000,
+  n_boot_max = 1e+05,
+  boot_min_exceed = 10,
   orientation = c("both", "A"),
   n_sim = 10000,
   shrink_qeff = 20
@@ -45,6 +47,14 @@ matrix for all genes or a list with one per gene.}
 
 \item{n_boot}{Conditional bootstrap draws (0 for the normal reference).}
 
+\item{n_boot_max, boot_min_exceed}{Adaptive bootstrap: pairs with fewer
+than \code{boot_min_exceed} bootstrap statistics at least as extreme as
+their own get further draws, in rounds of 10 times the draws so far, up
+to \code{n_boot_max} draws in total. The smallest attainable p is then
+\code{1/(n_boot_max + 1)} rather than \code{1/(n_boot + 1)}, so
+q-values over many pairs are not dominated by ties at the floor. Set
+\code{n_boot_max = n_boot} for a fixed number of draws.}
+
 \item{orientation}{\code{"both"} (default) or \code{"A"} (A given B only).}
 
 \item{n_sim}{Gaussian draws for the max-|T| adjustment when
@@ -59,8 +69,10 @@ List with \code{C} (genes A by genes B), \code{se}, \code{z} (A
   within the window pair), \code{p_norm_diagnostic} (normal reference,
   a diagnostic only when the bootstrap ran), \code{boot_sd_A} and
   \code{boot_sd_B} (SD of the bootstrap studentised statistic in each
-  orientation; well below 1 means the plug-in z is strongly
+  orientation, from the first \code{n_boot} draws; well below 1 means the plug-in z is strongly
   self-normalised and the bootstrap, not the normal reference, sets p),
+  \code{n_boot_used} (draws behind each p-value, the smaller of the two
+  orientations),
   the GLS-type null
   \code{se_gls} and \code{z_gls} (model on both sides), the diagnostics
   \code{R_AB} (\eqn{(Sy)'\Sigma_x(Sy)/tr(S\Sigma_x S\Sigma_y)};

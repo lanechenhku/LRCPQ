@@ -17,7 +17,7 @@
 #'     \code{PREFIX.lrcq.tsv.gz}, \code{PREFIX.stage12.rds}, \code{PREFIX.input.rds}.}
 #'   \item{\code{lrcp}}{\code{--lrcq PREFIX [--prescreen fdr|threshold] [--q 0.05]
 #'     [--threshold 10] [--z-min 2]
-#'     [--min-distance 5e6] [--class-null] [--n-boot 1000] --out PREFIX}: stage 4
+#'     [--min-distance 5e6] [--class-null] [--n-boot 1000] [--n-boot-max 1e5] --out PREFIX}: stage 4
 #'     on the candidates of an \code{lrcq} run ([run_lrcp()]); writes
 #'     \code{PREFIX.lrcp.tsv.gz}.}
 #' }
@@ -150,7 +150,8 @@ cli_lrcp <- function(opt, log) {
                     q_max = num(opt$q, 0.05), threshold = num(opt$threshold, 10),
                     z_min = num(opt$z_min, -Inf),
                     min_distance = num(opt$min_distance, 5e6), class_null = isTRUE(opt$class_null),
-                    n_boot = num(opt$n_boot, 1000))
+                    n_boot = num(opt$n_boot, 1000),
+                    n_boot_max = num(opt$n_boot_max, 1e5))
   if (nrow(pairs)) {
     pairs$rsid1 <- ld$snp$rsid[pairs$snp1]; pairs$rsid2 <- ld$snp$rsid[pairs$snp2]
     pairs <- pairs[order(pairs$p), ]

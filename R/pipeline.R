@@ -129,6 +129,9 @@ gcov_from_rg <- function(h2, rg) {
 #' @param n_boot Conditional bootstrap draws for the conditional test
 #'   ([lrcp_gene()], S8.2a; 0 for the normal reference). Ignored with the
 #'   class null, which uses the normal reference.
+#' @param n_boot_max Adaptive bootstrap cap ([lrcp_gene()]): pairs whose
+#'   p-value sits near \code{1/(n_boot + 1)} get further draws, up to this
+#'   many, so tied p-values at the floor do not swamp the q-values.
 #' @param mle Also run [lrcp_mle()] per window pair.
 #' @return Data frame with one row per tag pair; \code{p} is the bootstrap
 #'   p-value (larger of both orientations) for the conditional test.
@@ -139,7 +142,7 @@ run_lrcp <- function(Z, ld, n, M, gcov, intercept = NULL, lrcq_fit,
                      test = c("conditional", "gls"), method = "gls",
                      denominators = "R", class_null = FALSE,
                      min_abs_cor = 0.5, min_class_loci = 5, n_boot = 1000,
-                     mle = FALSE) {
+                     n_boot_max = 1e5, mle = FALSE) {
   test <- match.arg(test)
   prescreen <- match.arg(prescreen)
   q <- ncol(Z)
@@ -197,11 +200,12 @@ run_lrcp <- function(Z, ld, n, M, gcov, intercept = NULL, lrcq_fit,
       }
       f <- suppressWarnings(lrcp_gene(Z[A, , drop = FALSE], Z[B, , drop = FALSE], pa$R, pb$R,
                                       n = n, gcov = gcov, M = M, intercept = intercept,
-                                      VclassA = VA, VclassB = VB, n_boot = n_boot, n_sim = 0))
+                                      VclassA = VA, VclassB = VB, n_boot = n_boot,
+                                      n_boot_max = max(n_boot, n_boot_max), n_sim = 0))
       den <- sqrt(outer(pa$v, pb$v))
       res$rho <- as.vector(ifelse(den > 0, f$C / den, NA_real_))
       res$C <- as.vector(f$C); res$se <- as.vector(f$se); res$z <- as.vector(f$z)
-      res$p <- as.vector(f$p); res$p_maxT_window_pair <- as.vector(f$p_maxT %||% NA)
+      res$p <- as.vector(f$p); res$n_boot <- as.vector(f$n_boot_used %||% NA); res$p_maxT_window_pair <- as.vector(f$p_maxT %||% NA)
       res$z_gls <- as.vector(f$z_gls); res$R_AB <- as.vector(f$R_AB); res$e_B <- as.vector(f$e_B)
       if (class_null) res$testable <- pmin(res$q_eff_class1, res$q_eff_class2) >= 5
     } else {
