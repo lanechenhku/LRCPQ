@@ -1,3 +1,13 @@
+# lrcpq 0.3.0
+
+* **Defaults now match the LRCQ and LRCP papers.** Results from code that relied on the old defaults will change; pass the old values to reproduce them.
+  * `lrcq()`, `run_lrcq()` and `lrcq_window()` use `method = "ols"` (was `"wls"`).
+  * `lrcq()` and `run_lrcq()` return skewness-corrected p-values (`p_gt0`, `p_gt1`) by default with OLS (new argument `skew`, default `NULL` = on with OLS).
+  * `run_lrcq()` leaves estimates unrectified (`rectify = "none"`; was `"C"`).
+  * `run_lrcp()` screens tags with W > 0 at LRCQ FDR q < 0.05 (new arguments `prescreen = "fdr"` and `q_max`). The old screen on `w_raw >= threshold` stays available as `prescreen = "threshold"`.
+  * Command line: `lrcpq lrcq` uses OLS with skewness correction (`--no-skew` turns it off; `--skew` is no longer needed). `lrcpq lrcp` uses the FDR prescreen (`--prescreen threshold --threshold 10` for the old behaviour; `--q` sets the level).
+  * To reproduce 0.2 results: `run_lrcq(..., method = "wls", rectify = "C", skew = FALSE)` and `run_lrcp(..., prescreen = "threshold", threshold = 10)`.
+
 # lrcpq 0.2.1
 
 * Citation: `citation("lrcpq")` now gives the LRCQ and LRCP bioRxiv preprints (DOIs 10.64898/2026.11.02.763731 and 10.64898/2026.11.02.763742). The README no longer says the repository is private.

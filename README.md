@@ -24,11 +24,19 @@ Or from a clone: `R CMD INSTALL .`
 LRCPQ=$(Rscript -e 'cat(system.file("cli","lrcpq",package="lrcpq"))')
 $LRCPQ munge --sumstats trait.sumstats.gz --ref-ld ref/chr@ --chr 1-22 --out trait.munged.gz
 $LRCPQ lrcq  --sumstats-list traits.txt --ref-ld ref/chr@ --chr 1-22 --M 1094844 \
-             --h2 h2.tsv --rg rg.tsv --intercept intercept.tsv --method ols --skew --out run
+             --h2 h2.tsv --rg rg.tsv --intercept intercept.tsv --out run
 $LRCPQ lrcp  --lrcq run --out run
 ```
 
 Each command appends to `OUT.log`. See `?lrcpq_cli` for every flag.
+
+## Defaults
+
+Since 0.3.0 the defaults are the papers' choices:
+- LRCQ: OLS, unrectified estimates, model SEs with the background-filled plug-in, and skewness-corrected one-sided p-values.
+- LRCP: candidates are tags with W > 0 at LRCQ FDR 5%.
+
+The 0.2 behaviour stays available through arguments (see NEWS).
 
 ## Input formats
 
@@ -45,7 +53,7 @@ Each command appends to `OUT.log`. See `?lrcpq_cli` for every flag.
 - `*.lrcq.tsv.gz` has one row per tag SNP, with these columns:
   - `w_raw`, the clump-level enrichment, and its `se`;
   - `w_null1`, the expected estimate with no enrichment;
-  - with `--skew`: `k3`, `p_gt0` (H0: w = 0) and `p_gt1` (H0: no enrichment).
+  - by default (OLS): `k3`, and the skewness-corrected `p_gt0` (H0: w = 0) and `p_gt1` (H0: no enrichment). `--no-skew` drops them.
 - `*.lrcp.tsv.gz` has one row per distal tag pair: `rho`, `C`, `se`, `z`, bootstrap `p`, `z_gls`, `q_BH`, `q_BY`, and the rsids.
 
 Speed: use an optimised BLAS. With OpenBLAS (`apt-get install libopenblas0-pthread`) instead of R's reference BLAS, per-tag LRCQ on chromosome 22 (15,850 HM3 SNPs, 100 traits, 1000G LD) drops from 12 minutes to 42 seconds, roughly 50 minutes genome-wide.
@@ -112,7 +120,7 @@ Intercepts are taken from stage 2 and held fixed: with a free per-trait intercep
 
 ## Citation
 
-- Chen LG, Sham PC. LRCQ: phenome-wide heritability enrichment of genomic loci from GWAS summary statistics. bioRxiv (2026). doi:10.64898/2026.11.02.763731
-- Chen LG, Sham PC. LRCP: identifying functionally related SNPs and genes from phenome-wide genetic-effect correlations using GWAS summary statistics. bioRxiv (2026). doi:10.64898/2026.11.02.763742
+- Chen LG, Thach TQ, Sham PC. LRCQ: phenome-wide heritability enrichment of genomic loci from GWAS summary statistics. bioRxiv (2026). doi:10.64898/2026.11.02.763731
+- Chen LG, Thach TQ, Sham PC. LRCP: identifying functionally related SNPs and genes from phenome-wide genetic-effect correlations using GWAS summary statistics. bioRxiv (2026). doi:10.64898/2026.11.02.763742
 
 `citation("lrcpq")` gives both. Licence: GPL (>= 3).

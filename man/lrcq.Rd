@@ -12,13 +12,14 @@ lrcq(
   M,
   intercept = NULL,
   window_size = 3,
-  method = c("wls", "ols", "irls", "equal"),
+  method = c("ols", "wls", "irls", "equal"),
   rectify = "none",
   cross_terms = FALSE,
   Rb = NULL,
   chr = NULL,
   tag_r2 = NULL,
   windows = NULL,
+  skew = NULL,
   ...
 )
 }
@@ -38,7 +39,8 @@ intercepts). Responses are \eqn{z^2 - C_{aa}}.}
 
 \item{window_size}{Blocks per window (odd).}
 
-\item{method}{\code{"ols"}, \code{"wls"} (one reweighting step from OLS),
+\item{method}{\code{"ols"} (default since 0.3.0, as in the LRCQ paper),
+\code{"wls"} (one reweighting step from OLS; the 0.2 default),
 \code{"irls"} (iterate weights to convergence), or \code{"equal"}.
 WLS weights are \eqn{1/\mathrm{Var}(z^2) = 1/(2\sigma^4)}. OLS/WLS
 estimate the power-weighted mean enrichment
@@ -66,6 +68,10 @@ column naming their tag.}
 \item{windows}{Optional precomputed window list (\code{idx}, \code{core}),
 e.g. from an LD reference stored as overlapping windows.}
 
+\item{skew}{Skewness-corrected p-values (\code{p_gt0}, \code{p_gt1}).
+\code{NULL} (default) means \code{TRUE} with \code{method = "ols"} and
+\code{FALSE} otherwise.}
+
 \item{...}{Passed to [lrcq_window()] (e.g. \code{ridge}, \code{psd}).}
 }
 \value{
@@ -73,7 +79,7 @@ Data frame with \code{w_raw}, \code{w} (rectified), \code{se},
   \code{w_null1} (the expected estimate when no SNP is enriched; with
   tags this is \eqn{1 + \Pi 1}, about the clump size),
   \code{z} (\code{w_raw / se}) and \code{block}. With \code{skew = TRUE}
-  (passed through \code{...}, OLS only) also \code{k3}, \code{skew} and the
+  (the default with OLS) also \code{k3}, \code{skew} and the
   skewness-corrected one-sided p-values \code{p_gt0} (H0: w = 0) and
   \code{p_gt1} (H0: no enrichment, every SNP w = 1, i.e. the tag's
   estimand equals \code{w_null1}). Use these, not the

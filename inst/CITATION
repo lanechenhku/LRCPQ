@@ -1,7 +1,7 @@
 bibentry(
   bibtype = "Article",
   title = "LRCQ: phenome-wide heritability enrichment of genomic loci from GWAS summary statistics",
-  author = c(person("Lane Guolan", "Chen"), person("Pak Chung", "Sham")),
+  author = c(person("Lane Guolan", "Chen"), person("Thuan Q", "Thach"), person("Pak Chung", "Sham")),
   journal = "bioRxiv",
   year = "2026",
   doi = "10.64898/2026.11.02.763731"
@@ -9,7 +9,7 @@ bibentry(
 bibentry(
   bibtype = "Article",
   title = "LRCP: identifying functionally related SNPs and genes from phenome-wide genetic-effect correlations using GWAS summary statistics",
-  author = c(person("Lane Guolan", "Chen"), person("Pak Chung", "Sham")),
+  author = c(person("Lane Guolan", "Chen"), person("Thuan Q", "Thach"), person("Pak Chung", "Sham")),
   journal = "bioRxiv",
   year = "2026",
   doi = "10.64898/2026.11.02.763742"

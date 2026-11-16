@@ -9,12 +9,14 @@
 #'     the LD reference A1 allele ([munge_sumstats()]).}
 #'   \item{\code{lrcq}}{\code{--sumstats-list FILE --ref-ld PREFIX@ --chr 1-22 --M m
 #'     [--gcov FILE --intercept FILE | --h2 FILE --rg FILE --intercept FILE]
-#'     [--method ols|wls] [--skew] [--tag-r2 0.5] --out PREFIX}: stages 1-3 with the
+#'     [--method ols|wls] [--no-skew] [--tag-r2 0.5] --out PREFIX}: stages 1-3 with the
+#'     papers' defaults (OLS, skewness-corrected p-values) and the
 #'     traits listed one munged file per line (name<TAB>path, or a path whose
 #'     basename names the trait). Without stage 1-2 files they are estimated by
 #'     LD score regression, which needs genome-wide data. Writes
 #'     \code{PREFIX.lrcq.tsv.gz}, \code{PREFIX.stage12.rds}, \code{PREFIX.input.rds}.}
-#'   \item{\code{lrcp}}{\code{--lrcq PREFIX [--threshold 10] [--z-min 2]
+#'   \item{\code{lrcp}}{\code{--lrcq PREFIX [--prescreen fdr|threshold] [--q 0.05]
+#'     [--threshold 10] [--z-min 2]
 #'     [--min-distance 5e6] [--class-null] [--n-boot 1000] --out PREFIX}: stage 4
 #'     on the candidates of an \code{lrcq} run ([run_lrcp()]); writes
 #'     \code{PREFIX.lrcp.tsv.gz}.}
@@ -121,9 +123,9 @@ cli_lrcq <- function(opt, log) {
   }
   ldscore <- NULL
   if (is.null(gcov)) { log("estimating stage 1-2 by LD score regression"); ldscore <- ld_scores(ld) }
-  method <- if (is.null(opt$method)) "wls" else opt$method
-  skew <- isTRUE(opt$skew)
-  if (skew && method != "ols") { log("--skew needs OLS: using --method ols"); method <- "ols" }
+  method <- if (is.null(opt$method)) "ols" else opt$method
+  skew <- method == "ols" && !isTRUE(opt$no_skew)
+  if (isTRUE(opt$skew) && method != "ols") log("skewness correction needs OLS: skipped with --method ", method)
   tag_r2 <- if (is.null(opt$tag_r2)) 0.5 else as.numeric(opt$tag_r2)
   fit <- run_lrcq(Z, ld, n, M, gcov = gcov, intercept = intercept, ldscore = ldscore,
                   tag_r2 = tag_r2, method = method, skew = skew)
@@ -144,7 +146,9 @@ cli_lrcp <- function(opt, log) {
   ld <- ld_from_plink(inp$ref_ld, snps = inp$snps)
   num <- function(x, d) if (is.null(x)) d else as.numeric(x)
   pairs <- run_lrcp(inp$Z, ld, inp$n, inp$M, inp$fit$stage12$gcov, inp$fit$stage12$intercept,
-                    inp$fit, threshold = num(opt$threshold, 10), z_min = num(opt$z_min, -Inf),
+                    inp$fit, prescreen = if (is.null(opt$prescreen)) "fdr" else opt$prescreen,
+                    q_max = num(opt$q, 0.05), threshold = num(opt$threshold, 10),
+                    z_min = num(opt$z_min, -Inf),
                     min_distance = num(opt$min_distance, 5e6), class_null = isTRUE(opt$class_null),
                     n_boot = num(opt$n_boot, 1000))
   if (nrow(pairs)) {

@@ -18,14 +18,17 @@
 #' @param gcov,intercept Stage 1-2 inputs, or \code{NULL} to estimate.
 #' @param ldscore LD scores for stage 1-2 estimation.
 #' @param tag_r2 Clump threshold (\code{NULL} for per-SNP estimates).
-#' @param method,rectify Passed to [lrcq()].
+#' @param method,rectify Passed to [lrcq()]. Defaults (since 0.3.0) match
+#'   the LRCQ paper: OLS, unrectified estimates, and (through [lrcq()]'s
+#'   \code{skew}) skewness-corrected p-values. The 0.2 defaults were
+#'   \code{method = "wls", rectify = "C"} without skew correction.
 #' @param windows Optional precomputed windows (see [ld_from_windows()]).
 #' @param ... Passed to [lrcq()].
 #' @return List with \code{stage12} (gcov, intercept) and \code{w}
 #'   (data frame from [lrcq()], with SNP metadata when available).
 #' @export
 run_lrcq <- function(Z, ld, n, M, gcov = NULL, intercept = NULL, ldscore = NULL,
-                     tag_r2 = 0.5, method = "wls", rectify = "C",
+                     tag_r2 = 0.5, method = "ols", rectify = "none",
                      windows = NULL, ...) {
   if (is.null(gcov)) {
     if (is.null(ldscore)) stop("give gcov/intercept or ldscore for stage 1-2")
@@ -105,7 +108,15 @@ gcov_from_rg <- function(h2, rg) {
 #' @param gcov,intercept Stage 1-2 values. \code{gcov} must hold genome-wide
 #'   LDSC genetic covariances, never a diagonal matrix.
 #' @param lrcq_fit Output of [run_lrcq()] (its \code{w} table).
-#' @param threshold Screening cutoff on enrichment.
+#' @param prescreen Which tags enter LRCP. \code{"fdr"} (default since
+#'   0.3.0, as in the papers): tags with \eqn{W > 0} at LRCQ FDR
+#'   \code{q < q_max} (BH over all tags in \code{lrcq_fit}, using the
+#'   skewness-corrected \code{p_gt0} when present, else the normal reference).
+#'   \code{"threshold"}: tags with \code{w_raw >= threshold} (the 0.2
+#'   behaviour).
+#' @param q_max FDR level for \code{prescreen = "fdr"}.
+#' @param threshold Screening cutoff on enrichment for
+#'   \code{prescreen = "threshold"}.
 #' @param z_min Optional screening cutoff on the enrichment z-score.
 #' @param min_distance Minimum distance (bp) between windows on the same
 #'   chromosome.
@@ -123,18 +134,28 @@ gcov_from_rg <- function(h2, rg) {
 #'   p-value (larger of both orientations) for the conditional test.
 #' @export
 run_lrcp <- function(Z, ld, n, M, gcov, intercept = NULL, lrcq_fit,
+                     prescreen = c("fdr", "threshold"), q_max = 0.05,
                      threshold = 10, z_min = -Inf, min_distance = 5e6,
                      test = c("conditional", "gls"), method = "gls",
                      denominators = "R", class_null = FALSE,
                      min_abs_cor = 0.5, min_class_loci = 5, n_boot = 1000,
                      mle = FALSE) {
   test <- match.arg(test)
+  prescreen <- match.arg(prescreen)
   q <- ncol(Z)
   check_gcov(gcov, q, intercept)
   if (is.null(dim(gcov))) gcov <- diag(gcov, q)
   if (is.null(intercept)) intercept <- diag(q)
   wt <- lrcq_fit$w
-  cand <- which(!is.na(wt$w_raw) & wt$w_raw >= threshold & wt$z >= z_min)
+  ok <- !is.na(wt$w_raw)
+  if (prescreen == "fdr") {
+    # tags with W > 0 at LRCQ FDR q < q_max (skew-corrected p when available)
+    p0 <- if (!is.null(wt$p_gt0)) wt$p_gt0 else stats::pnorm(wt$z, lower.tail = FALSE)
+    qv <- rep(NA_real_, nrow(wt)); qv[ok] <- stats::p.adjust(p0[ok], "BH")
+    cand <- which(ok & qv < q_max & wt$z >= z_min)
+  } else {
+    cand <- which(ok & wt$w_raw >= threshold & wt$z >= z_min)
+  }
   if (length(cand) < 2) return(data.frame())
   blk <- ld$block_id[cand]
   groups <- split(cand, blk)

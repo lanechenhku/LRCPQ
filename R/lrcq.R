@@ -59,7 +59,8 @@ rectify_w <- function(w, method = c("none", "A", "B", "C", "zero")) {
 #' @param M Number of SNPs heritability refers to (genome-wide).
 #' @param intercept q-by-q intercept matrix (or length-q univariate
 #'   intercepts). Responses are \eqn{z^2 - C_{aa}}.
-#' @param method \code{"ols"}, \code{"wls"} (one reweighting step from OLS),
+#' @param method \code{"ols"} (default since 0.3.0, as in the LRCQ paper),
+#'   \code{"wls"} (one reweighting step from OLS; the 0.2 default),
 #'   \code{"irls"} (iterate weights to convergence), or \code{"equal"}.
 #'   WLS weights are \eqn{1/\mathrm{Var}(z^2) = 1/(2\sigma^4)}. OLS/WLS
 #'   estimate the power-weighted mean enrichment
@@ -103,7 +104,7 @@ rectify_w <- function(w, method = c("none", "A", "B", "C", "zero")) {
 #'   \code{tags}.
 #' @export
 lrcq_window <- function(Z, R, n, gcov, M, intercept = NULL,
-                        method = c("wls", "ols", "irls", "equal"), ridge = 0,
+                        method = c("ols", "wls", "irls", "equal"), ridge = 0,
                         N_ref = Inf, Rb = NULL, pair_sum = c("once", "twice", "chapter"),
                         se = c("model", "none"), max_iter = 20, tol = 1e-6,
                         w_plugin = NULL, tags = NULL, psd = TRUE,
@@ -300,28 +301,33 @@ p_skew <- function(x, mu0, se, k3) {
 #'   column naming their tag.
 #' @param windows Optional precomputed window list (\code{idx}, \code{core}),
 #'   e.g. from an LD reference stored as overlapping windows.
+#' @param skew Skewness-corrected p-values (\code{p_gt0}, \code{p_gt1}).
+#'   \code{NULL} (default) means \code{TRUE} with \code{method = "ols"} and
+#'   \code{FALSE} otherwise.
 #' @param ... Passed to [lrcq_window()] (e.g. \code{ridge}, \code{psd}).
 #' @inheritParams lrcq_window
 #' @return Data frame with \code{w_raw}, \code{w} (rectified), \code{se},
 #'   \code{w_null1} (the expected estimate when no SNP is enriched; with
 #'   tags this is \eqn{1 + \Pi 1}, about the clump size),
 #'   \code{z} (\code{w_raw / se}) and \code{block}. With \code{skew = TRUE}
-#'   (passed through \code{...}, OLS only) also \code{k3}, \code{skew} and the
+#'   (the default with OLS) also \code{k3}, \code{skew} and the
 #'   skewness-corrected one-sided p-values \code{p_gt0} (H0: w = 0) and
 #'   \code{p_gt1} (H0: no enrichment, every SNP w = 1, i.e. the tag's
 #'   estimand equals \code{w_null1}). Use these, not the
 #'   normal reference, for real phenome-wide traits.
 #' @export
 lrcq <- function(Z, ld, n, gcov, M, intercept = NULL, window_size = 3,
-                 method = c("wls", "ols", "irls", "equal"), rectify = "none",
+                 method = c("ols", "wls", "irls", "equal"), rectify = "none",
                  cross_terms = FALSE, Rb = NULL, chr = NULL, tag_r2 = NULL,
-                 windows = NULL, ...) {
+                 windows = NULL, skew = NULL, ...) {
   method <- match.arg(method)
+  # skewness-corrected p-values by default with OLS, as in the LRCQ paper
+  if (is.null(skew)) skew <- method == "ols"
+  if (skew && method != "ols") stop("skew = TRUE needs method = \"ols\"")
   Z <- as.matrix(Z)
   stopifnot(nrow(Z) == ld$m)
   m <- nrow(Z)
   w <- se <- k3 <- mu1 <- rep(NA_real_, m)
-  skew <- isTRUE(list(...)$skew)
   tag_of <- seq_len(m)
   if (is.null(windows)) windows <- make_windows(ld$block_id, window_size, chr)
   for (win in windows) {
@@ -329,7 +335,8 @@ lrcq <- function(Z, ld, n, gcov, M, intercept = NULL, window_size = 3,
     Rbw <- if (cross_terms) as.matrix(Rb[win$idx, win$idx]) else NULL
     tags <- if (is.null(tag_r2)) NULL else prune_ld(Rw, tag_r2)
     f <- lrcq_window(Z[win$idx, , drop = FALSE], Rw, n, gcov, M, intercept,
-                     method = method, N_ref = ld$N, Rb = Rbw, tags = tags, ...)
+                     method = method, N_ref = ld$N, Rb = Rbw, tags = tags,
+                     skew = skew, ...)
     tg <- f$tags
     core_tags <- which(tg %in% win$core)
     w[win$idx[tg[core_tags]]] <- f$w[core_tags]

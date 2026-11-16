@@ -86,9 +86,14 @@ test_that("pipelines run end to end and rank true pairs first", {
   sim <- simulate_lrcpq(blocks, n = n, w = w, Rb = Rb, gcov = gc$gcov, intercept = C, M = M)
   fq <- run_lrcq(sim$Z, ld, n, M, gc$gcov, C)
   expect_true(all(cand %in% which(fq$w$w_raw > 5)))
-  fp <- run_lrcp(sim$Z, ld, n, M, gc$gcov, C, fq, threshold = 5, min_distance = 0)
+  fp <- run_lrcp(sim$Z, ld, n, M, gc$gcov, C, fq, prescreen = "threshold", threshold = 5,
+                 min_distance = 0)
   top <- fp[order(fp$p), ][1:2, ]
   expect_setequal(paste(top$snp1, top$snp2), c("10 160", "60 210"))
+  # default prescreen: tags with W > 0 at LRCQ FDR 5%
+  ok <- !is.na(fq$w$w_raw); qv <- rep(NA, m); qv[ok] <- p.adjust(fq$w$p_gt0[ok], "BH")
+  fd <- run_lrcp(sim$Z, ld, n, M, gc$gcov, C, fq, min_distance = 0, n_boot = 0)
+  expect_true(all(unique(c(fd$snp1, fd$snp2)) %in% which(qv < 0.05)))
 })
 
 test_that("plug-in LRCP SE is calibrated at large rho", {

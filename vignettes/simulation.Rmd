@@ -80,7 +80,8 @@ abline(0, 1, col = "red")
 
 Options:
 
-- `method`: `"ols"`, `"wls"` (one reweighting, default), `"irls"`, or
+- `method`: `"ols"` (the default since 0.3.0, as in the papers), `"wls"`
+  (one reweighting; used above), `"irls"`, or
   `"equal"` (the simple mean of trait-specific enrichments; OLS and WLS
   target the power-weighted mean).
 - `rectify`: methods A, B or C for negative estimates (`rectify_w()`);
@@ -117,8 +118,9 @@ moment equation, and returns half the correlation.
 ## Whole-region pipelines
 
 `run_lrcq()` wraps stages 1 to 3 (estimating stage 1-2 with `ldsc_matrix()`
-when `gcov` is not given), and `run_lrcp()` screens the stage-3 output on
-`w` and its z-score, then fits every pair of candidate blocks that share no
+when `gcov` is not given), and `run_lrcp()` screens the stage-3 output (by
+default, tags with W > 0 at LRCQ FDR 5%; or `prescreen = "threshold"` on
+`w` and its z-score), then fits every pair of candidate blocks that share no
 LD, with Benjamini-Hochberg and Benjamini-Yekutieli q-values.
 
 ## Power

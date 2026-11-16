@@ -59,8 +59,7 @@ instead of total N, or LDSC's `M_5_50` instead of the HapMap3 count, moves
 it far from 1.
 
 ```{r p1-lrcq}
-fit <- run_lrcq(Z, ld, n, M, gcov = G, intercept = C, tag_r2 = 0.5,
-                method = "ols", skew = TRUE)
+fit <- run_lrcq(Z, ld, n, M, gcov = G, intercept = C)   # OLS + skew correction
 tags <- fit$w[!is.na(fit$w$w_raw), ]
 head(tags[order(tags$p_gt1), c("rsid", "pos", "w_raw", "se", "w_null1", "p_gt0", "p_gt1")])
 ```
@@ -146,7 +145,7 @@ short:
 for (chr in 1:22) {
   ldc <- ld_from_windows(file.path(ukb_ld_dir, paste0("chr", chr)))   # converted PolyFun windows
   f <- run_lrcq(Zg[chr_rows[[chr]], ], ldc, n, 1094844, gcov = G, intercept = C,
-                tag_r2 = 0.5, method = "ols", skew = TRUE)
+                tag_r2 = 0.5)                       # the papers' defaults
   saveRDS(f, sprintf("lrcq_chr%02d.rds", chr))
 }
 ```

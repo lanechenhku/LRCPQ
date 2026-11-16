@@ -99,16 +99,16 @@ summary(check_scale(Z, ld, n, h2, M, diag(C)))
 ## 3. Stage 3: LRCQ, phenome-wide enrichment per LD clump
 
 `run_lrcq()` fits OLS within LD windows. It estimates one `w` per tag SNP
-(clumps at r2 < 0.5). `skew = TRUE` adds the skewness-corrected p-values used
-in the paper:
+(clumps at r2 < 0.5). Its defaults follow the LRCQ paper: OLS, unrectified
+estimates, model SEs with the background-filled plug-in, and
+skewness-corrected one-sided p-values:
 
 - `p_gt0` tests w > 0;
 - `p_gt1` tests enrichment above the w = 1 background. The null estimate for
   each tag is `w_null1`, about the clump size.
 
 ```{r lrcq}
-fit <- run_lrcq(Z, ld, n, M, gcov = gcov, intercept = C, tag_r2 = 0.5,
-                method = "ols", skew = TRUE)
+fit <- run_lrcq(Z, ld, n, M, gcov = gcov, intercept = C)
 tags <- fit$w[!is.na(fit$w$w_raw), ]
 tags$q_gt1 <- p.adjust(tags$p_gt1, "BH")
 head(tags[order(tags$p_gt1), c("rsid", "pos", "w_raw", "se", "w_null1", "p_gt1", "q_gt1")])
@@ -137,7 +137,8 @@ FDR 5%; the 444-trait analysis in `vignette("real-data")` has far more power.
 
 `run_lrcp()` works in four steps:
 
-- it screens tags on their enrichment estimate (`threshold`, default 10);
+- it screens tags: by default, as in the papers, tags with W > 0 at LRCQ
+  FDR 5% (`prescreen = "fdr"`, `q_max = 0.05`);
 - it pairs the screened tags in different LD blocks at least `min_distance`
   apart;
 - it runs the conditional test with local moments;
@@ -145,9 +146,18 @@ FDR 5%; the 444-trait analysis in `vignette("real-data")` has far more power.
 
 `rho` is descriptive. Use the p-value for inference.
 
+```{r lrcp-default}
+pairs_fdr <- run_lrcp(Z, ld, n, M, fit$stage12$gcov, fit$stage12$intercept, fit)
+nrow(pairs_fdr)
+```
+
+With fifty traits, only a few tags pass the FDR prescreen, and the true pairs'
+tags are not all among them. A looser screen on the estimate itself
+(`prescreen = "threshold"`, `w_raw >= 10`) lets the example show them:
+
 ```{r lrcp}
 pairs <- run_lrcp(Z, ld, n, M, fit$stage12$gcov, fit$stage12$intercept, fit,
-                  threshold = 10, min_distance = 5e6, n_boot = 1000)
+                  prescreen = "threshold", threshold = 10, n_boot = 1000)
 pairs$rsid1 <- ld$snp$rsid[pairs$snp1]; pairs$rsid2 <- ld$snp$rsid[pairs$snp2]
 pairs <- pairs[order(pairs$p), ]
 nrow(pairs)
@@ -188,11 +198,11 @@ for i in $(seq -w 1 50); do printf "trait$i\ttrait$i.munged.gz\n"; done > list.t
 # 2-3. LRCQ with given h2, rg and intercepts (or --gcov FILE)
 $LRCPQ lrcq --sumstats-list list.txt --ref-ld $EX/ref_chr@ --chr 22 --M 1e6 \
   --h2 $EX/h2.tsv --rg $EX/rg.tsv --intercept $EX/intercept.tsv \
-  --method ols --skew --out example
+  --out example                      # OLS with skewness correction by default
 #   -> example.lrcq.tsv.gz, example.stage12.rds, example.input.rds, example.log
 
-# 4. LRCP on the screened tags
-$LRCPQ lrcp --lrcq example --threshold 10 --out example
+# 4. LRCP on tags with W > 0 at LRCQ FDR 5% (or --prescreen threshold --threshold 10)
+$LRCPQ lrcp --lrcq example --out example
 #   -> example.lrcp.tsv.gz (sorted by p, with rsid1/rsid2)
 ```
 

@@ -11,7 +11,7 @@ lrcq_window(
   gcov,
   M,
   intercept = NULL,
-  method = c("wls", "ols", "irls", "equal"),
+  method = c("ols", "wls", "irls", "equal"),
   ridge = 0,
   N_ref = Inf,
   Rb = NULL,
@@ -41,7 +41,8 @@ lrcq_window(
 \item{intercept}{q-by-q intercept matrix (or length-q univariate
 intercepts). Responses are \eqn{z^2 - C_{aa}}.}
 
-\item{method}{\code{"ols"}, \code{"wls"} (one reweighting step from OLS),
+\item{method}{\code{"ols"} (default since 0.3.0, as in the LRCQ paper),
+\code{"wls"} (one reweighting step from OLS; the 0.2 default),
 \code{"irls"} (iterate weights to convergence), or \code{"equal"}.
 WLS weights are \eqn{1/\mathrm{Var}(z^2) = 1/(2\sigma^4)}. OLS/WLS
 estimate the power-weighted mean enrichment

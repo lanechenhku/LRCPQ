@@ -13,8 +13,8 @@ run_lrcq(
   intercept = NULL,
   ldscore = NULL,
   tag_r2 = 0.5,
-  method = "wls",
-  rectify = "C",
+  method = "ols",
+  rectify = "none",
   windows = NULL,
   ...
 )
@@ -37,7 +37,10 @@ as h2.}
 
 \item{tag_r2}{Clump threshold (\code{NULL} for per-SNP estimates).}
 
-\item{method, rectify}{Passed to [lrcq()].}
+\item{method, rectify}{Passed to [lrcq()]. Defaults (since 0.3.0) match
+the LRCQ paper: OLS, unrectified estimates, and (through [lrcq()]'s
+\code{skew}) skewness-corrected p-values. The 0.2 defaults were
+\code{method = "wls", rectify = "C"} without skew correction.}
 
 \item{windows}{Optional precomputed windows (see [ld_from_windows()]).}
 

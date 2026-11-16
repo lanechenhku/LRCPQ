@@ -12,6 +12,8 @@ run_lrcp(
   gcov,
   intercept = NULL,
   lrcq_fit,
+  prescreen = c("fdr", "threshold"),
+  q_max = 0.05,
   threshold = 10,
   z_min = -Inf,
   min_distance = 5e+06,
@@ -33,7 +35,17 @@ LDSC genetic covariances, never a diagonal matrix.}
 
 \item{lrcq_fit}{Output of [run_lrcq()] (its \code{w} table).}
 
-\item{threshold}{Screening cutoff on enrichment.}
+\item{prescreen}{Which tags enter LRCP. \code{"fdr"} (default since
+0.3.0, as in the papers): tags with \eqn{W > 0} at LRCQ FDR
+\code{q < q_max} (BH over all tags in \code{lrcq_fit}, using the
+skewness-corrected \code{p_gt0} when present, else the normal reference).
+\code{"threshold"}: tags with \code{w_raw >= threshold} (the 0.2
+behaviour).}
+
+\item{q_max}{FDR level for \code{prescreen = "fdr"}.}
+
+\item{threshold}{Screening cutoff on enrichment for
+\code{prescreen = "threshold"}.}
 
 \item{z_min}{Optional screening cutoff on the enrichment z-score.}
 

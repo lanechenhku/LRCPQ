@@ -22,12 +22,14 @@ modelled on \code{ldsc.py}. Commands:
     the LD reference A1 allele ([munge_sumstats()]).}
   \item{\code{lrcq}}{\code{--sumstats-list FILE --ref-ld PREFIX@ --chr 1-22 --M m
     [--gcov FILE --intercept FILE | --h2 FILE --rg FILE --intercept FILE]
-    [--method ols|wls] [--skew] [--tag-r2 0.5] --out PREFIX}: stages 1-3 with the
+    [--method ols|wls] [--no-skew] [--tag-r2 0.5] --out PREFIX}: stages 1-3 with the
+    papers' defaults (OLS, skewness-corrected p-values) and the
     traits listed one munged file per line (name<TAB>path, or a path whose
     basename names the trait). Without stage 1-2 files they are estimated by
     LD score regression, which needs genome-wide data. Writes
     \code{PREFIX.lrcq.tsv.gz}, \code{PREFIX.stage12.rds}, \code{PREFIX.input.rds}.}
-  \item{\code{lrcp}}{\code{--lrcq PREFIX [--threshold 10] [--z-min 2]
+  \item{\code{lrcp}}{\code{--lrcq PREFIX [--prescreen fdr|threshold] [--q 0.05]
+    [--threshold 10] [--z-min 2]
     [--min-distance 5e6] [--class-null] [--n-boot 1000] --out PREFIX}: stage 4
     on the candidates of an \code{lrcq} run ([run_lrcp()]); writes
     \code{PREFIX.lrcp.tsv.gz}.}
