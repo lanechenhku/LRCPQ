@@ -157,7 +157,8 @@ tags are not all among them. A looser screen on the estimate itself
 
 ```{r lrcp}
 pairs <- run_lrcp(Z, ld, n, M, fit$stage12$gcov, fit$stage12$intercept, fit,
-                  prescreen = "threshold", threshold = 10, n_boot = 1000)
+                  prescreen = "threshold", threshold = 10, n_boot = 1000,
+                  n_boot_max = 1000)   # fixed draws, to keep the example fast
 pairs$rsid1 <- ld$snp$rsid[pairs$snp1]; pairs$rsid2 <- ld$snp$rsid[pairs$snp2]
 pairs <- pairs[order(pairs$p), ]
 nrow(pairs)
@@ -171,9 +172,16 @@ for (k in seq_len(nrow(tp))) {
 ```
 
 Both true pairs rank near the top of the roughly 15,800 pairs tested, with
-the right sign. Their exact ranks change from run to run: the bootstrap
-p-value cannot go below 1/(n_boot + 1), so many pairs tie there. Fifty traits
-on two regions is a small example, so neither pair passes multiple testing.
+the right sign. Fifty traits on two regions is a small example, so neither
+pair passes multiple testing.
+
+With a fixed number of draws the bootstrap p-value cannot go below
+1/(n_boot + 1), so many pairs tie there and their exact ranks change from run
+to run. By default (`n_boot_max = 1e5`), pairs near that floor get further
+draws until each has at least 10 bootstrap statistics as extreme as its own,
+which breaks the ties; the column `n_boot` reports the draws used. Here that
+takes about 20 minutes instead of about one, which is why the example fixes
+the draws.
 
 On real data, the genome-wide screen uses `lrcp_screen()`. Its p-values are
 calibrated by simulating the separable null; see `vignette("real-data")`.
