@@ -20,7 +20,7 @@
 #'     \code{PREFIX.lrcp.tsv.gz}.}
 #' }
 #' \code{--ref-ld} takes a PLINK prefix with \code{@} standing for the
-#' chromosome, as in ldsc. Every command writes \code{OUT.log} with the call,
+#' chromosome, as in ldsc. Every command appends to \code{OUT.log} the call,
 #' package version, input counts and timings.
 #' @param args Character vector of arguments (\code{commandArgs(TRUE)}).
 #' @return Invisibly, the output written.
@@ -33,7 +33,8 @@ lrcpq_cli <- function(args = commandArgs(TRUE)) {
   out <- opt$out; if (is.null(out)) stop("--out is required")
   logf <- paste0(if (cmd == "munge") sub("\\.gz$", "", out) else out, ".log")
   log <- function(...) { m <- paste0(format(Sys.time(), "%H:%M:%S "), ...); cat(m, "\n"); cat(m, "\n", file = logf, append = TRUE) }
-  cat("", file = logf)
+  # append, so lrcq and lrcp runs with the same --out keep one log
+  if (file.exists(logf)) cat("\n", file = logf, append = TRUE)
   log("lrcpq ", as.character(utils::packageVersion("lrcpq")), " ", cmd, " ", paste(args[-1], collapse = " "))
   t0 <- Sys.time()
   res <- switch(cmd,

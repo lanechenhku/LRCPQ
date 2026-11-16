@@ -1,8 +1,16 @@
 bibentry(
-  bibtype = "Misc",
-  title = "lrcpq: Phenome-Wide Genetic-Effect Enrichment and Correlation from GWAS Summary Statistics",
+  bibtype = "Article",
+  title = "LRCQ: phenome-wide heritability enrichment of genomic loci from GWAS summary statistics",
   author = c(person("Lane Guolan", "Chen"), person("Pak Chung", "Sham")),
+  journal = "bioRxiv",
   year = "2026",
-  note = "R package version 0.2.0. Methods papers in preparation.",
-  url = "https://github.com/unfated/LRCPQ"
+  doi = "10.64898/2026.11.02.763731"
+)
+bibentry(
+  bibtype = "Article",
+  title = "LRCP: identifying functionally related SNPs and genes from phenome-wide genetic-effect correlations using GWAS summary statistics",
+  author = c(person("Lane Guolan", "Chen"), person("Pak Chung", "Sham")),
+  journal = "bioRxiv",
+  year = "2026",
+  doi = "10.64898/2026.11.02.763742"
 )

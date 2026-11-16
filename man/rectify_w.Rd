@@ -13,7 +13,7 @@ rectify_w(w, method = c("none", "A", "B", "C", "zero"))
 \code{"zero"} (just truncate negatives at 0).}
 }
 \description{
-Chapter 6.3.2 rectification-adjustment methods, applied only when the
+Rectification-adjustment methods (theory supplement S3.8), applied only when the
 vector contains negative values.
 \describe{
   \item{A}{zero every element \eqn{\le |\min(\hat w)|}.}

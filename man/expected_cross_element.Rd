@@ -2,7 +2,7 @@
 % Please edit documentation in R/moments.R
 \name{expected_cross_element}
 \alias{expected_cross_element}
-\title{Literal element-wise chapter 6 moment equation}
+\title{Literal element-wise moment equation}
 \usage{
 expected_cross_element(
   k,
@@ -34,10 +34,10 @@ expected_cross_element(
 
 \item{intercept}{q-by-q intercept matrix (default identity).}
 
-\item{pair_factor}{Multiplier on the double sum: 1 reproduces the chapter
-equation literally (each pair counted twice), 0.5 counts each pair once.}
+\item{pair_factor}{Multiplier on the double sum: 1 counts each pair twice
+(the earlier, incorrect form), 0.5 counts each pair once.}
 }
 \description{
-Evaluates \eqn{E[z_{ka} z_{lb}]} term by term as written in chapter 6
-(\eqn{i \ne j} in the double sum). Used to test the matrix form; slow.
+Evaluates \eqn{E[z_{ka} z_{lb}]} term by term with a double sum over
+ordered pairs \eqn{i \ne j}. Used to test the matrix form; slow.
 }

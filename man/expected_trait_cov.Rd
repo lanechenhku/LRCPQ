@@ -13,7 +13,7 @@ expected_trait_cov(
   gcov,
   M,
   intercept = NULL,
-  pair_sum = c("once", "chapter")
+  pair_sum = c("once", "twice", "chapter")
 )
 }
 \arguments{

@@ -1,6 +1,6 @@
 # Stage 3: LRCQ estimation of the genetic-effect enrichment w.
 #
-# Regression model (chapter 6, LRCQ key equation, R_beta = 0):
+# Regression model (LRCQ key equation, R_beta = 0):
 #   y_ka = z_ka^2 - C_aa = s_a (D w)_k + e_ka,   s_a = n_a h2_a / M,  D = R o R.
 # Stacking traits gives the design X = s (x) D, so (fast OLS/WLS derivation)
 #   X' Omega X = D' diag(omega) D,   omega_k = sum_a s_a^2 / v_ka
@@ -9,7 +9,7 @@
 
 #' Rectify negative enrichment estimates
 #'
-#' Chapter 6.3.2 rectification-adjustment methods, applied only when the
+#' Rectification-adjustment methods (theory supplement S3.8), applied only when the
 #' vector contains negative values.
 #' \describe{
 #'   \item{A}{zero every element \eqn{\le |\min(\hat w)|}.}
@@ -70,7 +70,7 @@ rectify_w <- function(w, method = c("none", "A", "B", "C", "zero")) {
 #'   \eqn{D'\Omega D}; 0 gives the exact fast OLS/WLS solution.
 #' @param N_ref Reference panel size for the r-squared bias correction.
 #' @param Rb Optional genetic-effect correlation for the window. When given,
-#'   the chapter's cross terms are included as an offset evaluated at the
+#'   the \eqn{r_\beta} cross terms are included as an offset evaluated at the
 #'   current \eqn{\hat w} (\code{cross_terms = TRUE} in [lrcq()]).
 #' @param pair_sum See [sigma_w()].
 #' @param se \code{"model"}: sandwich SE under Gaussian Z with the full
@@ -104,7 +104,7 @@ rectify_w <- function(w, method = c("none", "A", "B", "C", "zero")) {
 #' @export
 lrcq_window <- function(Z, R, n, gcov, M, intercept = NULL,
                         method = c("wls", "ols", "irls", "equal"), ridge = 0,
-                        N_ref = Inf, Rb = NULL, pair_sum = c("once", "chapter"),
+                        N_ref = Inf, Rb = NULL, pair_sum = c("once", "twice", "chapter"),
                         se = c("model", "none"), max_iter = 20, tol = 1e-6,
                         w_plugin = NULL, tags = NULL, psd = TRUE,
                         skew = FALSE, skew_tol = 1e-3, se_rectify = "bgA") {
@@ -280,17 +280,17 @@ p_skew <- function(x, mu0, se, k3) {
 #' \eqn{D^{-1} diag(R\, C\, R)} with \eqn{C} the off-diagonal part of
 #' \eqn{S_w} (theory supplement S1.5, S1.6).
 #'
-#' Runs [lrcq_window()] over sliding windows of LD blocks (chapter 6 sliding
-#' window strategy) and keeps the core-block estimates.
+#' Runs [lrcq_window()] over sliding windows of LD blocks (sliding-window
+#' strategy, see [make_windows()]) and keeps the core-block estimates.
 #'
 #' @param Z m-by-q Z-score matrix aligned to the LD reference SNPs.
 #' @param ld An \code{lrcpq_ld} object.
 #' @param window_size Blocks per window (odd).
 #' @param rectify Rectification method for negative estimates, applied
 #'   genome-wide after estimation (see [rectify_w()]).
-#' @param cross_terms Include the chapter's \eqn{r_\beta} cross terms using
-#'   \code{Rb} (default \code{FALSE}: chi-square-only LRCQ as in the
-#'   abstract and Table 6.1).
+#' @param cross_terms Include the \eqn{r_\beta} cross terms using
+#'   \code{Rb} (default \code{FALSE}: chi-square-only LRCQ, as in the LRCQ
+#'   paper).
 #' @param Rb m-by-m genetic-effect correlation (needed if
 #'   \code{cross_terms = TRUE}).
 #' @param chr Optional chromosome per SNP (windows do not cross chromosomes).

@@ -7,7 +7,7 @@ test_that("matrix and element forms of the moment equation agree", {
   g <- make_gcov(q, h2 = c(0.3, 0.2), type = "cs", rg = 0.4)$gcov
   n <- c(1e4, 2e4); C <- make_intercept(q, 0.5, 0.2)
   E_once <- expected_zz(R, w, Rb, n, g, M = m, intercept = C, a = 1, b = 2)
-  E_chap <- expected_zz(R, w, Rb, n, g, M = m, intercept = C, a = 1, b = 2, pair_sum = "chapter")
+  E_chap <- expected_zz(R, w, Rb, n, g, M = m, intercept = C, a = 1, b = 2, pair_sum = "twice")
   for (k in 1:m) for (l in 1:m) {
     expect_equal(E_once[k, l], expected_cross_element(k, l, 1, 2, R, w, Rb, n, g, m, C, 0.5))
     expect_equal(E_chap[k, l], expected_cross_element(k, l, 1, 2, R, w, Rb, n, g, m, C, 1))

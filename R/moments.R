@@ -10,12 +10,13 @@
 #'   identity (no genetic-effect correlation).
 #' @param pair_sum How off-diagonal pairs enter the moment equations.
 #'   \code{"once"} (default) counts each unordered SNP pair once, which is what
-#'   expanding \eqn{r_k' \Sigma r_l} gives. \code{"chapter"} reproduces the
-#'   thesis chapter 6 equations, which sum the cross term over all ordered pairs
-#'   and so count each pair twice (off-diagonal doubled).
+#'   expanding \eqn{r_k' \Sigma r_l} gives. \code{"twice"} sums the cross
+#'   term over all ordered pairs and so counts each pair twice (off-diagonal
+#'   doubled), as in an earlier, incorrect form of the moment equation; kept for
+#'   comparison (\code{"chapter"} is an alias).
 #' @return An m-by-m matrix (dense or \code{Matrix}).
 #' @export
-sigma_w <- function(w, Rb = NULL, pair_sum = c("once", "chapter")) {
+sigma_w <- function(w, Rb = NULL, pair_sum = c("once", "twice", "chapter")) {
   pair_sum <- match.arg(pair_sum)
   m <- length(w)
   if (any(w < 0)) stop("w must be non-negative to build a covariance kernel")
@@ -23,7 +24,7 @@ sigma_w <- function(w, Rb = NULL, pair_sum = c("once", "chapter")) {
   if (!all(dim(Rb) == m)) stop("Rb must be m-by-m with m = length(w)")
   sw <- sqrt(w)
   S <- as.matrix(Rb) * outer(sw, sw)
-  if (pair_sum == "chapter") {
+  if (pair_sum != "once") {
     d <- diag(S)
     S <- 2 * S
     diag(S) <- d
@@ -53,7 +54,7 @@ scale_matrix <- function(n, gcov, M) {
 
 #' Expected Z-score cross-product matrix
 #'
-#' Matrix form of the LRCP/LRCQ moment equation (chapter 6, eq. 6.2.4.3):
+#' Matrix form of the LRCP/LRCQ moment equation (theory supplement S1):
 #' \deqn{E[z_{\cdot a} z_{\cdot b}'] = c_{ab} R S_w R + C_{ab} R,}
 #' with \eqn{c_{ab} = \sqrt{n_a n_b} h_{ab}/M} and \eqn{C_{ab}} the
 #' inter-GWAS intercept (\eqn{r_{ab} o_{ab}} off the diagonal, the univariate
@@ -67,7 +68,7 @@ scale_matrix <- function(n, gcov, M) {
 #' @return m-by-m matrix.
 #' @export
 expected_zz <- function(R, w, Rb = NULL, n, gcov, M, intercept = NULL,
-                        a = 1, b = a, pair_sum = c("once", "chapter")) {
+                        a = 1, b = a, pair_sum = c("once", "twice", "chapter")) {
   q <- length(n)
   if (is.null(intercept)) intercept <- diag(q)
   cab <- scale_matrix(n, gcov, M)[a, b]
@@ -85,7 +86,7 @@ expected_zz <- function(R, w, Rb = NULL, n, gcov, M, intercept = NULL,
 #' @return m-by-q matrix.
 #' @export
 expected_z2 <- function(R, w, Rb = NULL, n, gcov, M, intercept = NULL,
-                        pair_sum = c("once", "chapter")) {
+                        pair_sum = c("once", "twice", "chapter")) {
   q <- length(n)
   if (is.null(intercept)) intercept <- diag(q)
   h2 <- if (is.null(dim(gcov))) gcov else diag(gcov)
@@ -99,17 +100,17 @@ expected_z2 <- function(R, w, Rb = NULL, n, gcov, M, intercept = NULL,
   outer(g, s) + matrix(diag(intercept), length(g), q, byrow = TRUE)
 }
 
-#' Literal element-wise chapter 6 moment equation
+#' Literal element-wise moment equation
 #'
-#' Evaluates \eqn{E[z_{ka} z_{lb}]} term by term as written in chapter 6
-#' (\eqn{i \ne j} in the double sum). Used to test the matrix form; slow.
+#' Evaluates \eqn{E[z_{ka} z_{lb}]} term by term with a double sum over
+#' ordered pairs \eqn{i \ne j}. Used to test the matrix form; slow.
 #'
 #' @param k,l SNP indices.
 #' @param w Enrichment vector.
 #' @param Rb Genetic-effect correlation matrix.
 #' @inheritParams expected_zz
-#' @param pair_factor Multiplier on the double sum: 1 reproduces the chapter
-#'   equation literally (each pair counted twice), 0.5 counts each pair once.
+#' @param pair_factor Multiplier on the double sum: 1 counts each pair twice
+#'   (the earlier, incorrect form), 0.5 counts each pair once.
 #' @export
 expected_cross_element <- function(k, l, a, b, R, w, Rb, n, gcov, M,
                                    intercept = NULL, pair_factor = 1) {
@@ -142,7 +143,7 @@ expected_cross_element <- function(k, l, a, b, R, w, Rb, n, gcov, M,
 #' @return A q-by-q matrix, or a list of them when \code{k} has length > 1.
 #' @export
 expected_trait_cov <- function(k, R, w, Rb = NULL, n, gcov, M, intercept = NULL,
-                               pair_sum = c("once", "chapter")) {
+                               pair_sum = c("once", "twice", "chapter")) {
   q <- length(n)
   if (is.null(intercept)) intercept <- diag(q)
   if (is.null(dim(intercept))) intercept <- diag(intercept, q)

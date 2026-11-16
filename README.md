@@ -14,7 +14,7 @@ Model: `Y = XB + E`, `B ~ MN(0, U, V)` with `U = W^{1/2} Rβ W^{1/2}` and `V = H
 remotes::install_github("unfated/LRCPQ", build_vignettes = TRUE)
 ```
 
-The repository is private until the papers are published. Until then, install from a clone with `R CMD INSTALL .`
+Or from a clone: `R CMD INSTALL .`
 
 ## Quick start
 
@@ -28,7 +28,7 @@ $LRCPQ lrcq  --sumstats-list traits.txt --ref-ld ref/chr@ --chr 1-22 --M 1094844
 $LRCPQ lrcp  --lrcq run --out run
 ```
 
-Each command writes `OUT.log`. See `?lrcpq_cli` for every flag.
+Each command appends to `OUT.log`. See `?lrcpq_cli` for every flag.
 
 ## Input formats
 
@@ -101,10 +101,10 @@ cor(fit$w_raw, sim$w)
 
 **How fast is it?** Use OpenBLAS (see above). Genome-wide LRCQ for about 450 traits runs in hours, not days. Split long runs by chromosome.
 
-## Unsettled maths, kept switchable
+## Options kept for comparison
 
-- `pair_sum = "once"` (default, confirmed by the theory supplement) counts each SNP pair once in the `Rβ` cross terms; `"chapter"` reproduces the thesis equations, which count each pair twice.
-- `lrcq(..., cross_terms = FALSE)` is the chi-square-only LRCQ of the abstract; `TRUE` adds the cross terms for a given `Rβ`.
+- `pair_sum = "once"` (default, confirmed by the theory supplement) counts each SNP pair once in the `Rβ` cross terms; `"twice"` counts each pair twice, as in an earlier, incorrect form of the moment equation.
+- `lrcq(..., cross_terms = FALSE)` is the chi-square-only LRCQ of the paper; `TRUE` adds the cross terms for a given `Rβ`.
 
 Intercepts are taken from stage 2 and held fixed: with a free per-trait intercept inside a window, `w` is not identifiable.
 
@@ -112,4 +112,7 @@ Intercepts are taken from stage 2 and held fixed: with a free per-trait intercep
 
 ## Citation
 
-`citation("lrcpq")`. Licence: GPL (>= 3).
+- Chen LG, Sham PC. LRCQ: phenome-wide heritability enrichment of genomic loci from GWAS summary statistics. bioRxiv (2026). doi:10.64898/2026.11.02.763731
+- Chen LG, Sham PC. LRCP: identifying functionally related SNPs and genes from phenome-wide genetic-effect correlations using GWAS summary statistics. bioRxiv (2026). doi:10.64898/2026.11.02.763742
+
+`citation("lrcpq")` gives both. Licence: GPL (>= 3).

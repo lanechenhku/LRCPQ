@@ -14,7 +14,7 @@ lrcp_local(
   intercept = NULL,
   S = which(w > 0),
   trait_pairs = c("same", "all"),
-  pair_sum = c("once", "chapter"),
+  pair_sum = c("once", "twice", "chapter"),
   ridge = 0
 )
 }

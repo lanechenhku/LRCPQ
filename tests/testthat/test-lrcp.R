@@ -15,7 +15,7 @@ test_that("distal LRCP regression is unbiased, calibrated, and halves under the 
     sim <- simulate_lrcpq(s$blocks, n = s$n, w = s$w, Rb = s$Rb, gcov = s$gcov, M = s$M)
     a <- list(sim$Z[1:30, ], sim$Z[31:60, ], s$blocks[[1]], s$blocks[[2]], s$w[1:30], s$w[31:60], s$n, s$gcov, s$M)
     f <- do.call(lrcp_distal, a)
-    g <- do.call(lrcp_distal, c(a, list(pair_sum = "chapter")))
+    g <- do.call(lrcp_distal, c(a, list(pair_sum = "twice")))
     est <- rbind(est, diag(f$rho)); se <- rbind(se, diag(f$se)); chap <- rbind(chap, diag(g$rho))
   }
   sdv <- apply(est, 2, sd)

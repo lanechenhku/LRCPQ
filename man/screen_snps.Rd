@@ -17,6 +17,6 @@ screen_snps(w, threshold = 0.5, z = NULL, z_min = -Inf)
 \item{z_min}{Minimum z-score.}
 }
 \description{
-Chapter 6 prescreening: \eqn{\rho_{ij}} is set to 0 and not estimated if
+Prescreening: \eqn{\rho_{ij}} is set to 0 and not estimated if
 \eqn{w_i < t} or \eqn{w_j < t}.
 }

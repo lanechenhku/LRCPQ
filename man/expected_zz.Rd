@@ -14,7 +14,7 @@ expected_zz(
   intercept = NULL,
   a = 1,
   b = a,
-  pair_sum = c("once", "chapter")
+  pair_sum = c("once", "twice", "chapter")
 )
 }
 \arguments{
@@ -32,7 +32,7 @@ expected_zz(
 m-by-m matrix.
 }
 \description{
-Matrix form of the LRCP/LRCQ moment equation (chapter 6, eq. 6.2.4.3):
+Matrix form of the LRCP/LRCQ moment equation (theory supplement S1):
 \deqn{E[z_{\cdot a} z_{\cdot b}'] = c_{ab} R S_w R + C_{ab} R,}
 with \eqn{c_{ab} = \sqrt{n_a n_b} h_{ab}/M} and \eqn{C_{ab}} the
 inter-GWAS intercept (\eqn{r_{ab} o_{ab}} off the diagonal, the univariate

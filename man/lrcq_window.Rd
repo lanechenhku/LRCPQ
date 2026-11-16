@@ -15,7 +15,7 @@ lrcq_window(
   ridge = 0,
   N_ref = Inf,
   Rb = NULL,
-  pair_sum = c("once", "chapter"),
+  pair_sum = c("once", "twice", "chapter"),
   se = c("model", "none"),
   max_iter = 20,
   tol = 1e-06,
@@ -55,7 +55,7 @@ unbiased for the simple mean over traits but noisier.}
 \item{N_ref}{Reference panel size for the r-squared bias correction.}
 
 \item{Rb}{Optional genetic-effect correlation for the window. When given,
-the chapter's cross terms are included as an offset evaluated at the
+the \eqn{r_\beta} cross terms are included as an offset evaluated at the
 current \eqn{\hat w} (\code{cross_terms = TRUE} in [lrcq()]).}
 
 \item{pair_sum}{See [sigma_w()].}

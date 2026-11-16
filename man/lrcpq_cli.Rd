@@ -33,6 +33,6 @@ modelled on \code{ldsc.py}. Commands:
     \code{PREFIX.lrcp.tsv.gz}.}
 }
 \code{--ref-ld} takes a PLINK prefix with \code{@} standing for the
-chromosome, as in ldsc. Every command writes \code{OUT.log} with the call,
+chromosome, as in ldsc. Every command appends to \code{OUT.log} the call,
 package version, input counts and timings.
 }

@@ -20,7 +20,7 @@ lrcp_distal(
   trait_pairs = c("same", "all"),
   method = c("gls", "ols", "wls"),
   ridge = 0,
-  pair_sum = c("once", "chapter"),
+  pair_sum = c("once", "twice", "chapter"),
   N_ref = Inf,
   denominators = c("w", "R"),
   se_type = c("null", "plugin")
@@ -46,7 +46,7 @@ rectified, or true values in a simulation).}
 \item{method}{\code{"gls"} (default): generalised least squares under the
 null covariance \eqn{R_2 \otimes R_1}, which collapses to
 \eqn{W^{-1/2} R_{PP}^{-1} \bar Y_{P_1 P_2} R_{PP}^{-1} W^{-1/2}} and needs
-only the screened SNPs' Z-scores and LD (theory supplement S1.5);
+only the screened SNPs' Z-scores and LD (theory supplement S4.6);
 \code{"ols"}, or \code{"wls"} (separable weights
 \eqn{1/(\sigma^2_{ka}\sigma^2_{lb})}, same-trait products only). Both
 report sandwich SEs that use the full q-by-q Isserlis covariance of the

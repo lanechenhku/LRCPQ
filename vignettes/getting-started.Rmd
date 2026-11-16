@@ -129,10 +129,9 @@ table(max_r2_with_enriched = cut(max_r2, c(-1, 0.01, 0.1, 0.5, 1)),
       q_below_0.05 = tags$q_gt1 < 0.05)
 ```
 
-The hits concentrate on tags in LD with the enriched SNPs. Among tags
-essentially unlinked to them (r2 < 0.01), a handful pass. With strong local
-signal (w = 300 here), small mismatches between the 503-sample LD reference
-and the model leak into nearby estimates.
+All hits are tags in LD (r2 > 0.1) with an enriched SNP, and none of the
+unlinked tags pass. With 50 traits, only the strongest enriched clumps reach
+FDR 5%; the 444-trait analysis in `vignette("real-data")` has far more power.
 
 ## 4. Stage 4: LRCP, genetic-effect correlation between distal loci
 
@@ -161,9 +160,10 @@ for (k in seq_len(nrow(tp))) {
 }
 ```
 
-Both true pairs rank among the top few dozen of the thousands of pairs tested,
-with the right sign. Fifty traits on two regions is a small example, so
-neither pair passes multiple testing.
+Both true pairs rank near the top of the roughly 15,800 pairs tested, with
+the right sign. Their exact ranks change from run to run: the bootstrap
+p-value cannot go below 1/(n_boot + 1), so many pairs tie there. Fifty traits
+on two regions is a small example, so neither pair passes multiple testing.
 
 On real data, the genome-wide screen uses `lrcp_screen()`. Its p-values are
 calibrated by simulating the separable null; see `vignette("real-data")`.
@@ -172,7 +172,7 @@ calibrated by simulating the separable null; see `vignette("real-data")`.
 
 The package installs an `ldsc.py`-style script. Find it with
 `system.file("cli", "lrcpq", package = "lrcpq")`, and put it on your PATH or
-call it with `Rscript`. Each command writes `OUT.log`.
+call it with `Rscript`. Each command appends to `OUT.log`.
 
 ```sh
 EX=$(Rscript -e 'cat(system.file("extdata","example",package="lrcpq"))')

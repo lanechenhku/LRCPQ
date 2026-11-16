@@ -87,7 +87,7 @@ Options:
   `w_raw` is always returned.
 - `tag_r2`: estimate per clump of SNPs in tight LD (`r² ≥ tag_r2`) instead of
   per SNP, which is the identifiable target when LD is near 1.
-- `cross_terms = TRUE, Rb = ...`: add the `Rβ` cross terms of chapter 6.
+- `cross_terms = TRUE, Rb = ...`: add the `Rβ` cross terms of the full moment equation.
 
 ## Stage 4: LRCP between distal SNPs
 
@@ -111,8 +111,8 @@ rbind(mean = colMeans(est[, 1:3]), sd = apply(est[, 1:3], 2, sd),
 `lrcp_distal()` offers GLS (default), OLS and WLS; `lrcp_mle()` fits the
 Gaussian likelihood for a window pair with a positive semi-definite
 parameterisation of `Rβ` and is about twice as efficient. `pair_sum =
-"chapter"` reproduces the thesis equations, which count each SNP pair twice
-and return half the correlation.
+"twice"` counts each SNP pair twice, as in an earlier, incorrect form of the
+moment equation, and returns half the correlation.
 
 ## Whole-region pipelines
 

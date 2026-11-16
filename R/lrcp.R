@@ -3,7 +3,7 @@
 # Distal regions (no LD between region 1 and region 2):
 #   E[z1_a z2_b'] = f c_ab A1 P A2',  A_r = R_r W_r^{1/2}[, screened],
 # with P the cross-region block of R_beta (screened SNPs), f = 1 ("once") or
-# 2 ("chapter"). Stacking trait pairs with weights K gives the averaged response
+# 2 ("twice"). Stacking trait pairs with weights K gives the averaged response
 #   Ybar = Z1 K Z2' / ||K||_F^2   and   P_hat = (A1'A1)^-1 A1' Ybar A2 (A2'A2)^-1 / f,
 # the cross-product analogue of the fast LRCQ OLS solution.
 
@@ -15,7 +15,7 @@ lrcp_K <- function(cmat, trait_pairs) {
 
 #' Screen SNPs for LRCP on estimated enrichment
 #'
-#' Chapter 6 prescreening: \eqn{\rho_{ij}} is set to 0 and not estimated if
+#' Prescreening: \eqn{\rho_{ij}} is set to 0 and not estimated if
 #' \eqn{w_i < t} or \eqn{w_j < t}.
 #' @param w Enrichment estimates.
 #' @param threshold Cutoff \eqn{t}.
@@ -49,7 +49,7 @@ screen_snps <- function(w, threshold = 0.5, z = NULL, z_min = -Inf) {
 #' @param method \code{"gls"} (default): generalised least squares under the
 #'   null covariance \eqn{R_2 \otimes R_1}, which collapses to
 #'   \eqn{W^{-1/2} R_{PP}^{-1} \bar Y_{P_1 P_2} R_{PP}^{-1} W^{-1/2}} and needs
-#'   only the screened SNPs' Z-scores and LD (theory supplement S1.5);
+#'   only the screened SNPs' Z-scores and LD (theory supplement S4.6);
 #'   \code{"ols"}, or \code{"wls"} (separable weights
 #'   \eqn{1/(\sigma^2_{ka}\sigma^2_{lb})}, same-trait products only). Both
 #'   report sandwich SEs that use the full q-by-q Isserlis covariance of the
@@ -82,7 +82,7 @@ lrcp_distal <- function(Z1, Z2, R1, R2, w1, w2, n, gcov, M, intercept = NULL,
                         S1 = which(w1 > 0), S2 = which(w2 > 0),
                         trait_pairs = c("same", "all"),
                         method = c("gls", "ols", "wls"), ridge = 0,
-                        pair_sum = c("once", "chapter"), N_ref = Inf,
+                        pair_sum = c("once", "twice", "chapter"), N_ref = Inf,
                         denominators = c("w", "R"), se_type = c("null", "plugin")) {
   trait_pairs <- match.arg(trait_pairs)
   se_type <- match.arg(se_type)
@@ -217,7 +217,7 @@ lrcp_distal <- function(Z1, Z2, R1, R2, w1, w2, n, gcov, M, intercept = NULL,
 #' @export
 lrcp_mle <- function(Z1, Z2, R1, R2, w1, w2, n, gcov, M, intercept = NULL,
                      S1 = which(w1 > 0), S2 = which(w2 > 0),
-                     pair_sum = c("once", "chapter"), start = NULL,
+                     pair_sum = c("once", "twice", "chapter"), start = NULL,
                      bound = 0.99) {
   pair_sum <- match.arg(pair_sum)
   Z1 <- as.matrix(Z1); Z2 <- as.matrix(Z2)
@@ -348,7 +348,7 @@ MASS_ginv <- function(X, tol = sqrt(.Machine$double.eps)) {
 #' @export
 lrcp_local <- function(Z, R, w, n, gcov, M, intercept = NULL, S = which(w > 0),
                        trait_pairs = c("same", "all"),
-                       pair_sum = c("once", "chapter"), ridge = 0) {
+                       pair_sum = c("once", "twice", "chapter"), ridge = 0) {
   trait_pairs <- match.arg(trait_pairs)
   pair_sum <- match.arg(pair_sum)
   Z <- as.matrix(Z); R <- as.matrix(R)

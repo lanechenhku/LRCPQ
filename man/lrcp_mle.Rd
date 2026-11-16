@@ -17,7 +17,7 @@ lrcp_mle(
   intercept = NULL,
   S1 = which(w1 > 0),
   S2 = which(w2 > 0),
-  pair_sum = c("once", "chapter"),
+  pair_sum = c("once", "twice", "chapter"),
   start = NULL,
   bound = 0.99
 )

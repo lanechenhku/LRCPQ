@@ -1,3 +1,11 @@
+# lrcpq 0.2.1
+
+* Citation: `citation("lrcpq")` now gives the LRCQ and LRCP bioRxiv preprints (DOIs 10.64898/2026.11.02.763731 and 10.64898/2026.11.02.763742). The README no longer says the repository is private.
+* Fix: `run_lrcq()` (and so `*.lrcq.tsv.gz` from the command line) no longer writes a duplicate `block` column.
+* Fix: command-line runs append to `OUT.log` instead of overwriting it, so `lrcq` and `lrcp` runs with the same `--out` keep one log.
+* `pair_sum = "twice"` replaces `"chapter"` (still accepted as an alias). Documentation no longer refers to thesis chapters or slides; `lrcp_distal()` now cites theory supplement S4.6.
+* Getting-started vignette: text updated to match a fresh run.
+
 # lrcpq 0.2.0
 
 * The package moved to its own repository, unfated/LRCPQ.

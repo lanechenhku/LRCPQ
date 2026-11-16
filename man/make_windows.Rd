@@ -18,7 +18,7 @@ List of windows, each with \code{idx} (all SNPs) and \code{core}
   (positions within \code{idx} of the core block SNPs).
 }
 \description{
-Chapter 6 strategy: each window spans \code{size} consecutive blocks
+Each window spans \code{size} consecutive blocks
 (two at chromosome ends), slides one block at a time, and only the
 estimates for the middle (core) block are kept.
 }

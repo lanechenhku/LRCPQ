@@ -49,9 +49,9 @@ unbiased for the simple mean over traits but noisier.}
 \item{rectify}{Rectification method for negative estimates, applied
 genome-wide after estimation (see [rectify_w()]).}
 
-\item{cross_terms}{Include the chapter's \eqn{r_\beta} cross terms using
-\code{Rb} (default \code{FALSE}: chi-square-only LRCQ as in the
-abstract and Table 6.1).}
+\item{cross_terms}{Include the \eqn{r_\beta} cross terms using
+\code{Rb} (default \code{FALSE}: chi-square-only LRCQ, as in the LRCQ
+paper).}
 
 \item{Rb}{m-by-m genetic-effect correlation (needed if
 \code{cross_terms = TRUE}).}
@@ -90,6 +90,6 @@ that local genetic-effect correlation is zero; otherwise its bias is
 \eqn{S_w} (theory supplement S1.5, S1.6).
 }
 \details{
-Runs [lrcq_window()] over sliding windows of LD blocks (chapter 6 sliding
-window strategy) and keeps the core-block estimates.
+Runs [lrcq_window()] over sliding windows of LD blocks (sliding-window
+strategy, see [make_windows()]) and keeps the core-block estimates.
 }

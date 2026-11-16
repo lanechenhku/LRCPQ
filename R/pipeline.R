@@ -36,7 +36,7 @@ run_lrcq <- function(Z, ld, n, M, gcov = NULL, intercept = NULL, ldscore = NULL,
   if (is.null(intercept)) intercept <- diag(ncol(Z))
   w <- lrcq(Z, ld, n, gcov, M, intercept, method = method, rectify = rectify,
             tag_r2 = tag_r2, windows = windows, ...)
-  if (!is.null(ld$snp)) w <- cbind(ld$snp, w)
+  if (!is.null(ld$snp)) w <- cbind(ld$snp, w[, setdiff(names(w), names(ld$snp)), drop = FALSE])
   list(stage12 = list(gcov = gcov, intercept = intercept), w = w)
 }
 

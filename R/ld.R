@@ -89,7 +89,7 @@ assign_blocks <- function(chr, pos, blocks) {
 
 #' Sliding windows of consecutive LD blocks
 #'
-#' Chapter 6 strategy: each window spans \code{size} consecutive blocks
+#' Each window spans \code{size} consecutive blocks
 #' (two at chromosome ends), slides one block at a time, and only the
 #' estimates for the middle (core) block are kept.
 #'

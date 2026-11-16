@@ -20,5 +20,5 @@ m-by-q Z-score matrix.
 }
 \description{
 \eqn{Z = R B\, diag(\sqrt n) + E}, \eqn{E \sim MN(0, R, C)}. This is the
-summary-level generative model of chapter 6 (\eqn{\hat A = RB + U}).
+summary-level generative model of the framework (\eqn{\hat A = RB + U}).
 }

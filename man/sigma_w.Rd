@@ -4,7 +4,7 @@
 \alias{sigma_w}
 \title{Genetic-effect covariance kernel}
 \usage{
-sigma_w(w, Rb = NULL, pair_sum = c("once", "chapter"))
+sigma_w(w, Rb = NULL, pair_sum = c("once", "twice", "chapter"))
 }
 \arguments{
 \item{w}{Length-m enrichment vector (mean 1 genome-wide).}
@@ -14,9 +14,10 @@ identity (no genetic-effect correlation).}
 
 \item{pair_sum}{How off-diagonal pairs enter the moment equations.
 \code{"once"} (default) counts each unordered SNP pair once, which is what
-expanding \eqn{r_k' \Sigma r_l} gives. \code{"chapter"} reproduces the
-thesis chapter 6 equations, which sum the cross term over all ordered pairs
-and so count each pair twice (off-diagonal doubled).}
+expanding \eqn{r_k' \Sigma r_l} gives. \code{"twice"} sums the cross
+term over all ordered pairs and so counts each pair twice (off-diagonal
+doubled), as in an earlier, incorrect form of the moment equation; kept for
+comparison (\code{"chapter"} is an alias).}
 }
 \value{
 An m-by-m matrix (dense or \code{Matrix}).

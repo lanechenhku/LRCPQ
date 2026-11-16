@@ -1,6 +1,6 @@
 # Simulation engine for the matrix-normal LRCP/LRCQ model.
 #
-# Scheme (slides "Simulation scheme: matrix normal"):
+# Scheme (matrix-normal simulation):
 #   B (m x q) ~ MN(0, U, V),  U = W^{1/2} U0 W^{1/2},  V = Hg / M
 #   so that Cov(b_.a, b_.b) = (h_ab / M) U and Sigma_beta = avg(h2)/M * U.
 #   Z = R B diag(sqrt(n)) + E,   E ~ MN(0, R, C)  (C = intercept matrix).
@@ -196,7 +196,7 @@ ld_apply <- function(ld, X, fun = function(R, X) R %*% X) {
 #' Simulate GWAS Z-scores from genetic effects
 #'
 #' \eqn{Z = R B\, diag(\sqrt n) + E}, \eqn{E \sim MN(0, R, C)}. This is the
-#' summary-level generative model of chapter 6 (\eqn{\hat A = RB + U}).
+#' summary-level generative model of the framework (\eqn{\hat A = RB + U}).
 #'
 #' @param ld LD correlation matrix, or a list of LD blocks (block diagonal).
 #' @param B m-by-q genetic effects.
