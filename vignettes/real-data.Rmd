@@ -69,7 +69,7 @@ expected value is `w_null1`. The model SE uses background-filled rule A
 (`se_rectify = "bgA"`, the default). The p-values come from the score-type
 test (`test = "score"`, the default), with skewness and kurtosis
 corrections.
-The top tags sit near TP53 and its neighbours (rs9895829 is in TP53). With only 20 traits, this region is underpowered compared with the 444-trait
+The top tags lie within about 0.7 Mb of TP53. With only 20 traits, this region is underpowered compared with the 444-trait
 analysis. The point of Part 1 is the workflow, not discovery.
 
 # Part 2: the genome-wide pipeline (shown, not run)

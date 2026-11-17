@@ -132,9 +132,10 @@ table(max_r2_with_enriched = cut(max_r2, c(-1, 0.01, 0.1, 0.5, 1)),
       q_below_0.05 = tags$q_gt1 < 0.05)
 ```
 
-All hits are tags in LD (r2 > 0.1) with an enriched SNP, and none of the
-unlinked tags pass. With 50 traits, only the strongest enriched clumps reach
-FDR 5%; the 444-trait analysis in `vignette("real-data")` has far more power.
+Nearly all hits are tags in LD (r2 > 0.1) with an enriched SNP, and none of
+the unlinked tags (r2 below 0.01) pass. With 50 traits, the weaker enriched
+clumps do not reach FDR 5%; the 444-trait analysis in `vignette("real-data")`
+has far more power.
 
 ## 4. Stage 4: LRCP, genetic-effect correlation between distal loci
 
@@ -149,19 +150,9 @@ FDR 5%; the 444-trait analysis in `vignette("real-data")` has far more power.
 
 `rho` is descriptive. Use the p-value for inference.
 
-```{r lrcp-default}
-pairs_fdr <- run_lrcp(Z, ld, n, M, fit$stage12$gcov, fit$stage12$intercept, fit)
-nrow(pairs_fdr)
-```
-
-With fifty traits, only a few tags pass the FDR prescreen, and the true pairs'
-tags are not all among them. A looser screen on the estimate itself
-(`prescreen = "threshold"`, `w_raw >= 10`) lets the example show them:
-
 ```{r lrcp}
 pairs <- run_lrcp(Z, ld, n, M, fit$stage12$gcov, fit$stage12$intercept, fit,
-                  prescreen = "threshold", threshold = 10, n_boot = 1000,
-                  n_boot_max = 1000)   # fixed draws, to keep the example fast
+                  n_boot = 1000, n_boot_max = 1000)   # fixed draws, to keep the example fast
 pairs$rsid1 <- ld$snp$rsid[pairs$snp1]; pairs$rsid2 <- ld$snp$rsid[pairs$snp2]
 pairs <- pairs[order(pairs$p), ]
 nrow(pairs)
@@ -174,17 +165,18 @@ for (k in seq_len(nrow(tp))) {
 }
 ```
 
-Both true pairs rank near the top of the roughly 15,800 pairs tested, with
-the right sign. Fifty traits on two regions is a small example, so neither
-pair passes multiple testing.
+The tags of both true pairs pass the prescreen, and both pairs rank near the
+top with the right sign. Fifty traits on two regions is a small example, so
+neither pair passes multiple testing. A looser screen on the estimate itself
+is available as `prescreen = "threshold"` (for example `threshold = 10` on
+`w_raw`).
 
 With a fixed number of draws the bootstrap p-value cannot go below
-1/(n_boot + 1), so many pairs tie there and their exact ranks change from run
-to run. By default (`n_boot_max = 1e5`), pairs near that floor get further
-draws until each has at least 10 bootstrap statistics as extreme as its own,
-which breaks the ties; the column `n_boot` reports the draws used. Here that
-takes about 20 minutes instead of about one, which is why the example fixes
-the draws.
+1/(n_boot + 1), so pairs tie there and their exact ranks change from run to
+run. By default (`n_boot_max = 1e5`), pairs near that floor get further draws
+until each has at least 10 bootstrap statistics as extreme as its own, which
+breaks the ties; the column `n_boot` reports the draws used. That takes much
+longer, which is why the example fixes the draws.
 
 On real data, the genome-wide screen uses `lrcp_screen()`. Its p-values are
 calibrated by simulating the separable null; see `vignette("real-data")`.
