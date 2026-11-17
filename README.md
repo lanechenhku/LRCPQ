@@ -33,7 +33,7 @@ Each command appends to `OUT.log`. See `?lrcpq_cli` for every flag.
 ## Defaults
 
 Since 0.3.0 the defaults are the papers' choices:
-- LRCQ: OLS, unrectified estimates, model SEs with the background-filled plug-in, and skewness-corrected one-sided p-values.
+- LRCQ: OLS, unrectified estimates, model SEs with the background-filled plug-in, and one-sided score-type tag tests with skewness- and kurtosis-corrected p-values (`test = "wald"`, or `--wald`, for the Wald-type test).
 - LRCP: candidates are tags with W > 0 at LRCQ FDR 5%.
 
 The 0.2 behaviour stays available through arguments (see NEWS).
@@ -53,7 +53,7 @@ The 0.2 behaviour stays available through arguments (see NEWS).
 - `*.lrcq.tsv.gz` has one row per tag SNP, with these columns:
   - `w_raw`, the clump-level enrichment, and its `se`;
   - `w_null1`, the expected estimate with no enrichment;
-  - by default (OLS): `k3`, and the skewness-corrected `p_gt0` (H0: w = 0) and `p_gt1` (H0: no enrichment). `--no-skew` drops them.
+  - by default (OLS): `k3`, and the score-test `p_gt0` (H0: w = 0) and `p_gt1` (H0: no enrichment), with their null SEs and z-scores (`se_gt0`, `z_gt0`, `se_gt1`, `z_gt1`). `--no-skew` drops them.
 - `*.lrcp.tsv.gz` has one row per distal tag pair: `rho`, `C`, `se`, `z`, bootstrap `p`, `z_gls`, `q_BH`, `q_BY`, and the rsids.
 
 Speed: use an optimised BLAS. With OpenBLAS (`apt-get install libopenblas0-pthread`) instead of R's reference BLAS, per-tag LRCQ on chromosome 22 (15,850 HM3 SNPs, 100 traits, 1000G LD) drops from 12 minutes to 42 seconds, roughly 50 minutes genome-wide.
@@ -76,7 +76,7 @@ Stage 3 uses the fast OLS/WLS solution: stacking q traits gives the design `s ‚ä
 | Pan-UKB phenotypes and Z-scores (tabix + HTTP range requests, no full download) | `panukb_manifest()`, `panukb_select()`, `panukb_z()` |
 | LD reference | `ld_from_plink()` (1000G EUR, built by `inst/scripts/build_1000g_eur_hm3.sh`), `ld_from_windows()` (UKB in-sample LD windows), `ld_blocks_eur()`, `harmonise_alleles()` |
 | Munging | `munge_sumstats()`, `build_z_matrix()`, command line `lrcpq munge` |
-| Pipelines | `run_lrcq()` (stages 1-3), `run_lrcp()` (screen on `w`, distal block pairs, BH/BY q-values), `gcov_from_rg()`, `prune_traits()`, `check_scale()` (n, h2 and M on one scale), `lrcp_screen()` (genome-wide screen with simulated-null calibration), `p_skew()` (skew-corrected LRCQ p) |
+| Pipelines | `run_lrcq()` (stages 1-3), `run_lrcp()` (screen on `w`, distal block pairs, BH/BY q-values), `gcov_from_rg()`, `prune_traits()`, `check_scale()` (n, h2 and M on one scale), `lrcp_screen()` (genome-wide screen with simulated-null calibration), `p_skew()`, `p_kurt()` (skewness- and kurtosis-corrected LRCQ p) |
 | Aggregation | `lrcq_category()`, `lrcq_annot_regression()`, `trait_weights()` |
 | Power | `power_lrcq()`, `power_lrcp()`, `detectable_effect()` |
 
@@ -101,7 +101,9 @@ cor(fit$w_raw, sim$w)
 
 **Where do h2, rg and intercepts come from?** From genome-wide LD score regression: `ldsc_matrix()`, published LDSC output, or `panukb_select()` for Pan-UKB. Use the genome-wide rg (`gcov_from_rg()`). A diagonal gcov makes SEs far too small for correlated traits, so the package warns about it. The intercept matrix must come from one joint fit, so that it is positive semi-definite.
 
-**Why skew-corrected p-values?** Phenome-wide chi-square sums are right-skewed. The normal reference is anti-conservative in the upper tail, so `p_skew()` uses a shifted gamma with the estimate's third cumulant.
+**Why skew-corrected p-values?** Phenome-wide chi-square sums are right-skewed. The normal reference is anti-conservative in the upper tail, so `p_skew()` uses a shifted gamma with the estimate's third cumulant. Far in the tail the kurtosis exceeds the gamma's, so the score test uses `p_kurt()`, a chi-square matched to the fourth cumulant, for score z above 2.
+
+**Why a score test?** The SE plug-in includes each tag's own estimate. For the largest estimates the Wald z is then capped near 1.7, so the most enriched loci never reach significance. The score test puts the tag's own enrichment at its null value instead.
 
 **Why are LRCP bootstrap p-values conservative for strong pairs?** The statistic is self-normalised and bounded. Its tails are lighter than normal, so the normal p overstates significance less often than it understates it. Report `rho` descriptively and use `lrcp_screen()` with the simulated null for genome-wide FDR.
 

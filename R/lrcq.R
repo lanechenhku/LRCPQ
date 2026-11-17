@@ -99,7 +99,9 @@ rectify_w <- function(w, method = c("none", "A", "B", "C", "zero")) {
 #' @param skew With \code{method = "ols"}, also return the third cumulant
 #'   \code{k3} of each tag's estimate for skewness-corrected p-values
 #'   ([p_skew()]).
-#' @param skew_tol Support truncation for the third cumulant (0 = exact).
+#' @param skew_tol Support truncation for the third and fourth cumulants (0 = exact).
+#' @param test With \code{skew = TRUE}: \code{"score"} (default) also returns
+#'   \code{score}, the score-type tests of W = 0 and W = \code{mu1} (see [lrcq()]).
 #' @return List with \code{w} and \code{se} (one per tag), \code{iter},
 #'   \code{tags}.
 #' @export
@@ -108,7 +110,9 @@ lrcq_window <- function(Z, R, n, gcov, M, intercept = NULL,
                         N_ref = Inf, Rb = NULL, pair_sum = c("once", "twice", "chapter"),
                         se = c("model", "none"), max_iter = 20, tol = 1e-6,
                         w_plugin = NULL, tags = NULL, psd = TRUE,
-                        skew = FALSE, skew_tol = 1e-3, se_rectify = "bgA") {
+                        skew = FALSE, skew_tol = 1e-3, se_rectify = "bgA",
+                        test = c("score", "wald")) {
+  test <- match.arg(test)
   method <- match.arg(method)
   if (skew && method != "ols")
     stop("skew-corrected p-values are implemented for method = \"ols\" (the LRCQ paper's estimator)")
@@ -220,10 +224,17 @@ lrcq_window <- function(Z, R, n, gcov, M, intercept = NULL,
     } else wfull <- expand(rectify_w(w_hat, se_rectify))
     so <- se_of(wfull); Ak <- so$Ak; se_w <- so$se
   }
-  k3 <- NULL
-  if (skew && se == "model")
-    k3 <- lrcq_k3(G, R, Ak, s, intercept, scale_matrix(n, gcov, M), skew_tol)
-  list(w = w_hat, se = se_w, k3 = k3, mu1 = mu1, iter = iter, tags = tags)
+  k3 <- score <- NULL
+  if (skew && se == "model") {
+    Tm <- scale_matrix(n, gcov, M)
+    k3 <- lrcq_k3(G, R, Ak, s, intercept, Tm, skew_tol)
+    if (test == "score" && is.null(Rb))
+      score <- list(gt0 = lrcq_score(w_hat, 0, se_w, G, R, Ak, wfull[tags], tags, s,
+                                     intercept, Tm, skew_tol),
+                    gt1 = lrcq_score(w_hat, mu1, se_w, G, R, Ak, wfull[tags], tags, s,
+                                     intercept, Tm, skew_tol))
+  }
+  list(w = w_hat, se = se_w, k3 = k3, mu1 = mu1, iter = iter, tags = tags, score = score)
 }
 
 # Third cumulant of the OLS LRCQ estimate per tag (theory: W_t = g_t' u with
@@ -243,6 +254,82 @@ lrcq_k3 <- function(G, R, A, s, Gam, Tm, tol = 1e-3) {
     PP <- P %*% P; QQ <- Q %*% Q
     8 * (trp(PP, P) * t111 + 3 * trp(PP, Q) * t112 + 3 * trp(P, QQ) * t122 + trp(QQ, Q) * t222)
   }, 0)
+}
+
+# Score-type one-sided test of H0: W_t = null_t for the OLS LRCQ estimate
+# (LRCQ paper Methods; theory supplement S3.10a, S3.11; audit finding M1).
+# The cumulants of W_t are evaluated at the plug-in enrichment with the tested
+# tag's own entry set to its null value; every other SNP keeps the plug-in.
+# Moving the plug-in at tag SNP t by d changes A = R diag(w) R by d r r'
+# (r = R[, t]), so the variance has a closed-form update; the third and
+# fourth cumulants are recomputed on the support of g_t. p-values: normal
+# reference for score z <= 1.5, shifted gamma (three cumulants) for
+# 1.5 < z <= 2, and the kurtosis-matched central chi-square (Lee, Wu and
+# Lin 2012) above 2. A Wald-type variance includes the tag's own estimate,
+# which caps z near 1.7 for the largest W in Pan-UKB.
+lrcq_score <- function(w, null, se_wald, G, R, A, wpl, tags, s, Gam, Tm, tol = 1e-3) {
+  p <- length(w)
+  null <- rep_len(null, p)
+  X1 <- s * Gam; X2 <- s * Tm
+  trp <- function(X, Y) sum(X * t(Y))
+  X11 <- X1 %*% X1; X12 <- X1 %*% X2; X22 <- X2 %*% X2
+  t12 <- sum(diag(X12)); t22 <- sum(diag(X22))
+  t111 <- trp(X11, X1); t112 <- trp(X11, X2); t122 <- trp(X1, X22); t222 <- trp(X22, X2)
+  t1111 <- trp(X11, X11); t1112 <- trp(X11, X12); t1122 <- trp(X11, X22)
+  t1212 <- trp(X12, X12); t1222 <- trp(X12, X22); t2222 <- trp(X22, X22)
+  Rt <- R[, tags, drop = FALSE]
+  d <- null - pmax(wpl, 0)
+  GR <- G * t(Rt)
+  a1 <- rowSums((GR %*% A) * GR); c1 <- rowSums((GR %*% R) * GR); b <- rowSums(G * t(Rt^2))
+  k2 <- pmax(se_wald^2 + 2 * (t22 * (2 * d * a1 + d^2 * b^2) + 2 * t12 * d * c1), 0)
+  se <- sqrt(k2)
+  z <- (w - null) / se
+  pv <- stats::pnorm(z, lower.tail = FALSE)
+  for (i in which(is.finite(z) & z > 1.5)) {
+    g <- G[i, ]
+    J <- if (tol > 0) which(abs(g) > tol * max(abs(g))) else seq_along(g)
+    rj <- Rt[J, i]
+    Pm <- g[J] * R[J, J, drop = FALSE]
+    Q <- g[J] * (A[J, J, drop = FALSE] + d[i] * tcrossprod(rj))
+    PP <- Pm %*% Pm; QQ <- Q %*% Q; PQ <- Pm %*% Q
+    k3 <- 8 * (trp(PP, Pm) * t111 + 3 * trp(PP, Q) * t112 + 3 * trp(Pm, QQ) * t122 +
+                 trp(QQ, Q) * t222)
+    if (z[i] <= 2) {
+      pv[i] <- p_skew(w[i], null[i], se[i], k3)
+    } else {
+      k4 <- 48 * (trp(PP, PP) * t1111 + 4 * trp(PP, PQ) * t1112 + 4 * trp(PP, QQ) * t1122 +
+                    2 * trp(PQ, PQ) * t1212 + 4 * trp(PQ, QQ) * t1222 + trp(QQ, QQ) * t2222)
+      pv[i] <- p_kurt(w[i], null[i], se[i], k3, k4)
+    }
+  }
+  list(se = se, z = z, p = pv)
+}
+
+#' Kurtosis-matched upper-tail p-value
+#'
+#' Central chi-square approximation to a Gaussian quadratic form matching
+#' its excess kurtosis (Lee, Wu and Lin 2012, the SKAT-O small-sample
+#' correction): with \eqn{l = 12\kappa_2^2/\kappa_4},
+#' \eqn{p = \Pr(\chi^2_l > l + z\sqrt{2l})}, \eqn{z = (x - \mu_0)/\sqrt{\kappa_2}}.
+#' Used for the LRCQ score test far in the tail, where the shifted gamma
+#' ([p_skew()]) is anti-conservative because the kurtosis of the estimate
+#' exceeds the gamma's. Falls back to the normal reference when the third
+#' or fourth cumulant is not positive.
+#'
+#' @param x Estimates.
+#' @param mu0 Null mean.
+#' @param se Null standard deviation \eqn{\sqrt{\kappa_2}}.
+#' @param k3,k4 Third and fourth cumulants.
+#' @return Upper-tail p-values.
+#' @export
+p_kurt <- function(x, mu0, se, k3, k4) {
+  z <- (x - mu0) / se
+  p <- stats::pnorm(z, lower.tail = FALSE)
+  s1 <- k3 / se^3 / sqrt(8); s2 <- k4 / se^4 / 12
+  ok <- is.finite(s1) & is.finite(s2) & s1 > 1e-6 & s2 > 1e-9
+  l <- 1 / s2[ok]
+  p[ok] <- stats::pchisq(l + z[ok] * sqrt(2 * l), df = l, lower.tail = FALSE)
+  p
 }
 
 #' Skewness-corrected upper-tail p-value
@@ -304,6 +391,18 @@ p_skew <- function(x, mu0, se, k3) {
 #' @param skew Skewness-corrected p-values (\code{p_gt0}, \code{p_gt1}).
 #'   \code{NULL} (default) means \code{TRUE} with \code{method = "ols"} and
 #'   \code{FALSE} otherwise.
+#' @param test With \code{skew = TRUE}: \code{"score"} (default since
+#'   0.3.0, as in the LRCQ paper) or \code{"wald"}. The Wald-type test
+#'   divides by the reported SE, whose plug-in includes the tag's own
+#'   estimate; for the largest estimates this caps z near 1.7 and misses the
+#'   strongest loci. The score-type test evaluates the variance and higher
+#'   cumulants with the tested tag's own enrichment at its null value (0 for
+#'   \code{p_gt0}, \code{w_null1} for \code{p_gt1}) and every other SNP at
+#'   the background-filled plug-in. Its p-values use the normal reference for
+#'   score z up to 1.5, the shifted gamma ([p_skew()]) up to 2 and the
+#'   kurtosis-matched chi-square ([p_kurt()]) above. The reported \code{se}
+#'   stays the Wald-type SE. Not available with \code{cross_terms = TRUE}
+#'   (the Wald test is used).
 #' @param ... Passed to [lrcq_window()] (e.g. \code{ridge}, \code{psd}).
 #' @inheritParams lrcq_window
 #' @return Data frame with \code{w_raw}, \code{w} (rectified), \code{se},
@@ -313,13 +412,17 @@ p_skew <- function(x, mu0, se, k3) {
 #'   (the default with OLS) also \code{k3}, \code{skew} and the
 #'   skewness-corrected one-sided p-values \code{p_gt0} (H0: w = 0) and
 #'   \code{p_gt1} (H0: no enrichment, every SNP w = 1, i.e. the tag's
-#'   estimand equals \code{w_null1}). Use these, not the
+#'   estimand equals \code{w_null1}). With \code{test = "score"} (the
+#'   default) these come from the score-type test and are accompanied by its
+#'   null SEs and z-scores (\code{se_gt0}, \code{z_gt0}, \code{se_gt1},
+#'   \code{z_gt1}) and \code{test}. Use these, not the
 #'   normal reference, for real phenome-wide traits.
 #' @export
 lrcq <- function(Z, ld, n, gcov, M, intercept = NULL, window_size = 3,
                  method = c("ols", "wls", "irls", "equal"), rectify = "none",
                  cross_terms = FALSE, Rb = NULL, chr = NULL, tag_r2 = NULL,
-                 windows = NULL, skew = NULL, ...) {
+                 windows = NULL, skew = NULL, test = c("score", "wald"), ...) {
+  test <- match.arg(test)
   method <- match.arg(method)
   # skewness-corrected p-values by default with OLS, as in the LRCQ paper
   if (is.null(skew)) skew <- method == "ols"
@@ -328,6 +431,9 @@ lrcq <- function(Z, ld, n, gcov, M, intercept = NULL, window_size = 3,
   stopifnot(nrow(Z) == ld$m)
   m <- nrow(Z)
   w <- se <- k3 <- mu1 <- rep(NA_real_, m)
+  sc <- matrix(NA_real_, m, 6, dimnames = list(NULL, c("se_gt0", "z_gt0", "p_gt0",
+                                                       "se_gt1", "z_gt1", "p_gt1")))
+  use_score <- skew && test == "score" && !cross_terms
   tag_of <- seq_len(m)
   if (is.null(windows)) windows <- make_windows(ld$block_id, window_size, chr)
   for (win in windows) {
@@ -336,13 +442,18 @@ lrcq <- function(Z, ld, n, gcov, M, intercept = NULL, window_size = 3,
     tags <- if (is.null(tag_r2)) NULL else prune_ld(Rw, tag_r2)
     f <- lrcq_window(Z[win$idx, , drop = FALSE], Rw, n, gcov, M, intercept,
                      method = method, N_ref = ld$N, Rb = Rbw, tags = tags,
-                     skew = skew, ...)
+                     skew = skew, test = test, ...)
     tg <- f$tags
     core_tags <- which(tg %in% win$core)
     w[win$idx[tg[core_tags]]] <- f$w[core_tags]
     se[win$idx[tg[core_tags]]] <- f$se[core_tags]
     mu1[win$idx[tg[core_tags]]] <- f$mu1[core_tags]
     if (skew) k3[win$idx[tg[core_tags]]] <- f$k3[core_tags]
+    if (use_score) {
+      ct <- win$idx[tg[core_tags]]
+      sc[ct, 1:3] <- cbind(f$score$gt0$se, f$score$gt0$z, f$score$gt0$p)[core_tags, ]
+      sc[ct, 4:6] <- cbind(f$score$gt1$se, f$score$gt1$z, f$score$gt1$p)[core_tags, ]
+    }
     if (!is.null(tag_r2)) {
       # each core SNP points to the tag it is most correlated with
       nearest <- tg[apply(abs(Rw[win$core, tg, drop = FALSE]), 1, which.max)]
@@ -358,8 +469,13 @@ lrcq <- function(Z, ld, n, gcov, M, intercept = NULL, window_size = 3,
   if (skew) {
     out$k3 <- k3
     out$skew <- k3 / se^3
-    out$p_gt0 <- p_skew(w, 0, se, k3)
-    out$p_gt1 <- p_skew(w, mu1, se, k3)
+    if (use_score) {
+      for (k in colnames(sc)) out[[k]] <- sc[, k]
+      out$test <- ifelse(ok, "score", NA)
+    } else {
+      out$p_gt0 <- p_skew(w, 0, se, k3)
+      out$p_gt1 <- p_skew(w, mu1, se, k3)
+    }
   }
   out
 }

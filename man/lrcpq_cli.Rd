@@ -22,8 +22,9 @@ modelled on \code{ldsc.py}. Commands:
     the LD reference A1 allele ([munge_sumstats()]).}
   \item{\code{lrcq}}{\code{--sumstats-list FILE --ref-ld PREFIX@ --chr 1-22 --M m
     [--gcov FILE --intercept FILE | --h2 FILE --rg FILE --intercept FILE]
-    [--method ols|wls] [--no-skew] [--tag-r2 0.5] --out PREFIX}: stages 1-3 with the
-    papers' defaults (OLS, skewness-corrected p-values) and the
+    [--method ols|wls] [--no-skew] [--wald] [--tag-r2 0.5] --out PREFIX}: stages 1-3
+    with the papers' defaults (OLS, score-type tag tests with skewness- and
+    kurtosis-corrected p-values; \code{--wald} for the Wald-type test) and the
     traits listed one munged file per line (name<TAB>path, or a path whose
     basename names the trait). Without stage 1-2 files they are estimated by
     LD score regression, which needs genome-wide data. Writes

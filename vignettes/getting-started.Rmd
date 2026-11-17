@@ -100,8 +100,11 @@ summary(check_scale(Z, ld, n, h2, M, diag(C)))
 
 `run_lrcq()` fits OLS within LD windows. It estimates one `w` per tag SNP
 (clumps at r2 < 0.5). Its defaults follow the LRCQ paper: OLS, unrectified
-estimates, model SEs with the background-filled plug-in, and
-skewness-corrected one-sided p-values:
+estimates, model SEs with the background-filled plug-in, and one-sided
+score-type tests. A score test sets the tested tag's own enrichment to its
+null value when it computes the variance, so the strongest tags are not
+held back by their own estimate; its p-values correct for the skewness and
+kurtosis of the estimate:
 
 - `p_gt0` tests w > 0;
 - `p_gt1` tests enrichment above the w = 1 background. The null estimate for
@@ -206,7 +209,7 @@ for i in $(seq -w 1 50); do printf "trait$i\ttrait$i.munged.gz\n"; done > list.t
 # 2-3. LRCQ with given h2, rg and intercepts (or --gcov FILE)
 $LRCPQ lrcq --sumstats-list list.txt --ref-ld $EX/ref_chr@ --chr 22 --M 1e6 \
   --h2 $EX/h2.tsv --rg $EX/rg.tsv --intercept $EX/intercept.tsv \
-  --out example                      # OLS with skewness correction by default
+  --out example                      # OLS with score-type tests by default
 #   -> example.lrcq.tsv.gz, example.stage12.rds, example.input.rds, example.log
 
 # 4. LRCP on tags with W > 0 at LRCQ FDR 5% (or --prescreen threshold --threshold 10)

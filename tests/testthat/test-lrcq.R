@@ -99,3 +99,38 @@ test_that("default SE plug-in is background-filled rule A (LRCQ paper, S3.10a)",
   old <- lrcq_window(sim$Z, R, n, gc$gcov, M, C, method = "ols", tags = P, se_rectify = "A")
   expect_true(all(a$se >= old$se - 1e-12))
 })
+
+test_that("score-type tag test: exact update, no Wald cap, calibrated null", {
+  set.seed(8)
+  R <- make_ld_ar1(40, 0.5)[[1]]; q <- 20
+  gc <- make_gcov(q, h2 = rep(0.3, q), type = "cluster", rg = 0.5, n_clusters = 3)
+  C <- make_intercept(q, overlap = 1, rp = 0.3); n <- rep(3e5, q); M <- 2e4
+  P <- prune_ld(R, 0.5)
+  # null value equal to the tag's own plug-in: score SE = Wald SE
+  sim <- simulate_lrcpq(list(R), n = n, w = rep(1, 40), gcov = gc$gcov, intercept = C, M = M)
+  f <- lrcq_window(sim$Z, R, n, gc$gcov, M, C, method = "ols", tags = P, skew = TRUE,
+                   w_plugin = rep(5, length(P)))
+  Tm <- scale_matrix(n, gc$gcov, M); Dm <- ld_r2(R)
+  G <- solve(crossprod(Dm[, P]) * sum((n * diag(gc$gcov) / M)^2), t(Dm[, P]))
+  wf <- numeric(40); wf[P] <- 5; A <- R %*% (wf * R)
+  sc <- lrcpq:::lrcq_score(f$w, 5, f$se, G, R, A, rep(5, length(P)), P,
+                           n * diag(gc$gcov) / M, C, Tm)
+  expect_equal(sc$se, f$se, tolerance = 1e-10)
+  # one strongly enriched SNP: the Wald z is capped, the score z is not
+  w <- rep(1, 40); w[20] <- 3000
+  sim <- simulate_lrcpq(list(R), n = n, w = w, gcov = gc$gcov, intercept = C, M = M)
+  f <- lrcq_window(sim$Z, R, n, gc$gcov, M, C, method = "ols", tags = P, skew = TRUE)
+  t20 <- which.max(f$w)
+  expect_lt(f$w[t20] / f$se[t20], 3)
+  expect_gt(f$score$gt1$z[t20], 2 * f$w[t20] / f$se[t20])
+  expect_lt(f$score$gt1$p[t20], 1e-4)
+  # no enrichment: one-sided level about 5%
+  p <- replicate(150, {
+    Z <- simulate_lrcpq(list(R), n = n, w = rep(1, 40), gcov = gc$gcov, intercept = C, M = M)$Z
+    lrcq_window(Z, R, n, gc$gcov, M, C, method = "ols", tags = P, skew = TRUE)$score$gt1$p
+  })
+  expect_gt(mean(p < 0.05), 0.02); expect_lt(mean(p < 0.05), 0.08)
+  # kurtosis-matched p: normal limit and heavier tail than the normal
+  expect_equal(p_kurt(2, 0, 1, 1e-9, 1e-12), stats::pnorm(-2))
+  expect_gt(p_kurt(4, 0, 1, 1, 2), stats::pnorm(-4))
+})

@@ -24,7 +24,8 @@ lrcq_window(
   psd = TRUE,
   skew = FALSE,
   skew_tol = 0.001,
-  se_rectify = "bgA"
+  se_rectify = "bgA",
+  test = c("score", "wald")
 )
 }
 \arguments{
@@ -82,7 +83,7 @@ before solving.}
 \code{k3} of each tag's estimate for skewness-corrected p-values
 ([p_skew()]).}
 
-\item{skew_tol}{Support truncation for the third cumulant (0 = exact).}
+\item{skew_tol}{Support truncation for the third and fourth cumulants (0 = exact).}
 
 \item{se_rectify}{Plug-in for the SE when \code{w_plugin} is \code{NULL}.
 \code{"bgA"} (default since 0.2.0, as in the LRCQ paper; theory
@@ -94,6 +95,9 @@ drops the polygenic background and makes SEs 10-25\% too small under
 dense enrichment. \code{"eb"}: a common window enrichment plus tag
 deviations shrunk by their signal-to-noise ratio. \code{"one"}: w = 1 for
 every SNP (simulation checks).}
+
+\item{test}{With \code{skew = TRUE}: \code{"score"} (default) also returns
+\code{score}, the score-type tests of W = 0 and W = \code{mu1} (see [lrcq()]).}
 }
 \value{
 List with \code{w} and \code{se} (one per tag), \code{iter},

@@ -20,6 +20,7 @@ lrcq(
   tag_r2 = NULL,
   windows = NULL,
   skew = NULL,
+  test = c("score", "wald"),
   ...
 )
 }
@@ -72,6 +73,19 @@ e.g. from an LD reference stored as overlapping windows.}
 \code{NULL} (default) means \code{TRUE} with \code{method = "ols"} and
 \code{FALSE} otherwise.}
 
+\item{test}{With \code{skew = TRUE}: \code{"score"} (default since
+0.3.0, as in the LRCQ paper) or \code{"wald"}. The Wald-type test
+divides by the reported SE, whose plug-in includes the tag's own
+estimate; for the largest estimates this caps z near 1.7 and misses the
+strongest loci. The score-type test evaluates the variance and higher
+cumulants with the tested tag's own enrichment at its null value (0 for
+\code{p_gt0}, \code{w_null1} for \code{p_gt1}) and every other SNP at
+the background-filled plug-in. Its p-values use the normal reference for
+score z up to 1.5, the shifted gamma ([p_skew()]) up to 2 and the
+kurtosis-matched chi-square ([p_kurt()]) above. The reported \code{se}
+stays the Wald-type SE. Not available with \code{cross_terms = TRUE}
+(the Wald test is used).}
+
 \item{...}{Passed to [lrcq_window()] (e.g. \code{ridge}, \code{psd}).}
 }
 \value{
@@ -82,7 +96,10 @@ Data frame with \code{w_raw}, \code{w} (rectified), \code{se},
   (the default with OLS) also \code{k3}, \code{skew} and the
   skewness-corrected one-sided p-values \code{p_gt0} (H0: w = 0) and
   \code{p_gt1} (H0: no enrichment, every SNP w = 1, i.e. the tag's
-  estimand equals \code{w_null1}). Use these, not the
+  estimand equals \code{w_null1}). With \code{test = "score"} (the
+  default) these come from the score-type test and are accompanied by its
+  null SEs and z-scores (\code{se_gt0}, \code{z_gt0}, \code{se_gt1},
+  \code{z_gt1}) and \code{test}. Use these, not the
   normal reference, for real phenome-wide traits.
 }
 \description{

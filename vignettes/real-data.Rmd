@@ -59,14 +59,16 @@ instead of total N, or LDSC's `M_5_50` instead of the HapMap3 count, moves
 it far from 1.
 
 ```{r p1-lrcq}
-fit <- run_lrcq(Z, ld, n, M, gcov = G, intercept = C)   # OLS + skew correction
+fit <- run_lrcq(Z, ld, n, M, gcov = G, intercept = C)   # OLS, score-type tests
 tags <- fit$w[!is.na(fit$w$w_raw), ]
 head(tags[order(tags$p_gt1), c("rsid", "pos", "w_raw", "se", "w_null1", "p_gt0", "p_gt1")])
 ```
 
 `w_raw` is the clump-level phenome-wide enrichment. Without enrichment its
 expected value is `w_null1`. The model SE uses background-filled rule A
-(`se_rectify = "bgA"`, the default). The p-values are skewness-corrected.
+(`se_rectify = "bgA"`, the default). The p-values come from the score-type
+test (`test = "score"`, the default), with skewness and kurtosis
+corrections.
 The top tags sit near TP53 and its neighbours (rs9895829 is in TP53). With only 20 traits, this region is underpowered compared with the 444-trait
 analysis. The point of Part 1 is the workflow, not discovery.
 
@@ -136,9 +138,10 @@ Zg <- panukb_z(sel, hm3_ids, regions = chromosome_ranges)   # 1.09M x 444
 ## 5. Stage 3: LRCQ genome-wide
 
 The papers run tag-set OLS in 3 Mb windows with 2 Mb cores, excluding the
-MHC. Tags are clumped at r2 < 0.5, giving 301,693 tags. Inference uses model
-SEs with the background-filled plug-in and skewness-corrected one-sided
-p-values. Run it by chromosome, or by blocks of windows, to keep each job
+MHC. Tags are clumped at r2 < 0.5, giving 301,693 tags. The reported SEs use
+the background-filled plug-in. The one-sided tag tests are score-type: the
+tested tag's own enrichment is set to its null value in the variance, with
+skewness- and kurtosis-corrected p-values. Run it by chromosome, or by blocks of windows, to keep each job
 short:
 
 ```{r}
@@ -153,8 +156,8 @@ for (chr in 1:22) {
 With OpenBLAS, one chromosome takes minutes to an hour, depending on its
 size. Results in the LRCQ paper:
 
-- 70 omni-loci (99 tags) at FDR 5%, 38 of them at Bonferroni level;
-- 138 tags with W > 0 at FDR 5%;
+- 921 tags (661 loci) enriched above the background at FDR 5%;
+- 1,799 tags (1,145 loci) with W > 0 at FDR 5%;
 - phenome-wide h2 is 3-5 times enriched in coding, conserved, TSS and 5' UTR
   annotations (`lrcq_annot_regression()`), and depleted in repressed
   chromatin.

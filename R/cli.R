@@ -9,8 +9,9 @@
 #'     the LD reference A1 allele ([munge_sumstats()]).}
 #'   \item{\code{lrcq}}{\code{--sumstats-list FILE --ref-ld PREFIX@ --chr 1-22 --M m
 #'     [--gcov FILE --intercept FILE | --h2 FILE --rg FILE --intercept FILE]
-#'     [--method ols|wls] [--no-skew] [--tag-r2 0.5] --out PREFIX}: stages 1-3 with the
-#'     papers' defaults (OLS, skewness-corrected p-values) and the
+#'     [--method ols|wls] [--no-skew] [--wald] [--tag-r2 0.5] --out PREFIX}: stages 1-3
+#'     with the papers' defaults (OLS, score-type tag tests with skewness- and
+#'     kurtosis-corrected p-values; \code{--wald} for the Wald-type test) and the
 #'     traits listed one munged file per line (name<TAB>path, or a path whose
 #'     basename names the trait). Without stage 1-2 files they are estimated by
 #'     LD score regression, which needs genome-wide data. Writes
@@ -128,7 +129,8 @@ cli_lrcq <- function(opt, log) {
   if (isTRUE(opt$skew) && method != "ols") log("skewness correction needs OLS: skipped with --method ", method)
   tag_r2 <- if (is.null(opt$tag_r2)) 0.5 else as.numeric(opt$tag_r2)
   fit <- run_lrcq(Z, ld, n, M, gcov = gcov, intercept = intercept, ldscore = ldscore,
-                  tag_r2 = tag_r2, method = method, skew = skew)
+                  tag_r2 = tag_r2, method = method, skew = skew,
+                  test = if (isTRUE(opt$wald)) "wald" else "score")
   sc <- check_scale(Z, ld, n, diag(fit$stage12$gcov), M, diag(as.matrix(fit$stage12$intercept)))
   log("check_scale median ", round(stats::median(sc), 3), " (near 1 when n, h2 and M are on one scale)")
   w <- fit$w; w <- w[!is.na(w$w_raw), ]
