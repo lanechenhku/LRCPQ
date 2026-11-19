@@ -86,8 +86,10 @@ There are two choices:
   public PolyFun windows on the Broad bucket (`broad-alkesgroup-ukbb-ld`), 3 Mb
   windows with 1 Mb steps, and is read with `ld_from_windows()`.
 - **1000 Genomes EUR HapMap3** (503 samples, GRCh37), an out-of-sample
-  alternative. Download the prebuilt PLINK files from the package's GitHub
-  release (`lrcpq_ref_1000G_EUR_HM3_GRCh37.tar.gz`, 56 MB), or rebuild them:
+  alternative. Download the prebuilt PLINK files from the
+  [v0.2.0 GitHub release](https://github.com/unfated/LRCPQ/releases/tag/v0.2.0)
+  (`lrcpq_ref_1000G_EUR_HM3_GRCh37.tar.gz`, 56 MB; the same file serves every
+  later version), or rebuild them:
 
 ```bash
 bash $(Rscript -e 'cat(system.file("scripts", package = "lrcpq"))')/build_1000g_eur_hm3.sh ref
