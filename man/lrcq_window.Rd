@@ -25,7 +25,8 @@ lrcq_window(
   skew = FALSE,
   skew_tol = 0.001,
   se_rectify = "bgA",
-  test = c("score", "wald")
+  test = c("score", "wald"),
+  score_null = c("nonneg", "plugin")
 )
 }
 \arguments{
@@ -98,6 +99,15 @@ every SNP (simulation checks).}
 
 \item{test}{With \code{skew = TRUE}: \code{"score"} (default) also returns
 \code{score}, the score-type tests of W = 0 and W = \code{mu1} (see [lrcq()]).}
+
+\item{score_null}{Null SNP configuration of the score test when the null
+value is negative (\code{mu1} < 0, about 5\% of tags in Pan-UKB):
+\code{"nonneg"} (default since 0.3.1, as in the LRCQ paper) uses the
+nonnegative per-SNP enrichment closest to the plug-in whose projected
+mean \eqn{a_t'w} equals the null, \eqn{a_t} the row of
+\eqn{(D_T'D_T)^{-1}D_T'D}; \code{"plugin"} (0.3.0) sets the tag's own
+plug-in to the negative null, which makes the genetic covariance
+indefinite. Nonnegative nulls are the same under both.}
 }
 \value{
 List with \code{w} and \code{se} (one per tag), \code{iter},

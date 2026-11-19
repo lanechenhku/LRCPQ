@@ -1,3 +1,7 @@
+# lrcpq 0.3.1
+
+* **Nonnegative score-test null** (`score_null = "nonneg"`, the new default; matches the LRCQ paper). For tags whose projected uniform null `w_null1` is negative (about 5% of tags in Pan-UKB, from LD shared between clumps and reference-panel r² noise), the score test now evaluates its cumulants at the nonnegative per-SNP enrichment closest to the background-filled plug-in whose projected mean equals `w_null1`. 0.3.0 set the tag's own plug-in to the negative value, which made the genetic covariance indefinite. Tags with a nonnegative null, and all `p_gt0` tests, are unchanged. `score_null = "plugin"` gives the 0.3.0 behaviour.
+
 # lrcpq 0.3.0
 
 * **Defaults now match the LRCQ and LRCP papers.** Results from code that relied on the old defaults will change; pass the old values to reproduce them.

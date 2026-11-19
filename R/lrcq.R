@@ -102,6 +102,14 @@ rectify_w <- function(w, method = c("none", "A", "B", "C", "zero")) {
 #' @param skew_tol Support truncation for the third and fourth cumulants (0 = exact).
 #' @param test With \code{skew = TRUE}: \code{"score"} (default) also returns
 #'   \code{score}, the score-type tests of W = 0 and W = \code{mu1} (see [lrcq()]).
+#' @param score_null Null SNP configuration of the score test when the null
+#'   value is negative (\code{mu1} < 0, about 5\% of tags in Pan-UKB):
+#'   \code{"nonneg"} (default since 0.3.1, as in the LRCQ paper) uses the
+#'   nonnegative per-SNP enrichment closest to the plug-in whose projected
+#'   mean \eqn{a_t'w} equals the null, \eqn{a_t} the row of
+#'   \eqn{(D_T'D_T)^{-1}D_T'D}; \code{"plugin"} (0.3.0) sets the tag's own
+#'   plug-in to the negative null, which makes the genetic covariance
+#'   indefinite. Nonnegative nulls are the same under both.
 #' @return List with \code{w} and \code{se} (one per tag), \code{iter},
 #'   \code{tags}.
 #' @export
@@ -111,8 +119,9 @@ lrcq_window <- function(Z, R, n, gcov, M, intercept = NULL,
                         se = c("model", "none"), max_iter = 20, tol = 1e-6,
                         w_plugin = NULL, tags = NULL, psd = TRUE,
                         skew = FALSE, skew_tol = 1e-3, se_rectify = "bgA",
-                        test = c("score", "wald")) {
+                        test = c("score", "wald"), score_null = c("nonneg", "plugin")) {
   test <- match.arg(test)
+  score_null <- match.arg(score_null)
   method <- match.arg(method)
   if (skew && method != "ols")
     stop("skew-corrected p-values are implemented for method = \"ols\" (the LRCQ paper's estimator)")
@@ -229,10 +238,10 @@ lrcq_window <- function(Z, R, n, gcov, M, intercept = NULL,
     Tm <- scale_matrix(n, gcov, M)
     k3 <- lrcq_k3(G, R, Ak, s, intercept, Tm, skew_tol)
     if (test == "score" && is.null(Rb))
-      score <- list(gt0 = lrcq_score(w_hat, 0, se_w, G, R, Ak, wfull[tags], tags, s,
-                                     intercept, Tm, skew_tol),
-                    gt1 = lrcq_score(w_hat, mu1, se_w, G, R, Ak, wfull[tags], tags, s,
-                                     intercept, Tm, skew_tol))
+      score <- list(gt0 = lrcq_score(w_hat, 0, se_w, G, R, Ak, wfull, tags, s,
+                                     intercept, Tm, skew_tol, D, score_null),
+                    gt1 = lrcq_score(w_hat, mu1, se_w, G, R, Ak, wfull, tags, s,
+                                     intercept, Tm, skew_tol, D, score_null))
   }
   list(w = w_hat, se = se_w, k3 = k3, mu1 = mu1, iter = iter, tags = tags, score = score)
 }
@@ -267,13 +276,15 @@ lrcq_k3 <- function(G, R, A, s, Gam, Tm, tol = 1e-3) {
 # 1.5 < z <= 2, and the kurtosis-matched central chi-square (Lee, Wu and
 # Lin 2012) above 2. A Wald-type variance includes the tag's own estimate,
 # which caps z near 1.7 for the largest W in Pan-UKB.
-lrcq_score <- function(w, null, se_wald, G, R, A, wpl, tags, s, Gam, Tm, tol = 1e-3) {
+lrcq_score <- function(w, null, se_wald, G, R, A, wfull, tags, s, Gam, Tm, tol = 1e-3,
+                       D = NULL, score_null = "nonneg") {
   p <- length(w)
   null <- rep_len(null, p)
+  wpl <- wfull[tags]
   X1 <- s * Gam; X2 <- s * Tm
   trp <- function(X, Y) sum(X * t(Y))
   X11 <- X1 %*% X1; X12 <- X1 %*% X2; X22 <- X2 %*% X2
-  t12 <- sum(diag(X12)); t22 <- sum(diag(X22))
+  t11 <- sum(diag(X11)); t12 <- sum(diag(X12)); t22 <- sum(diag(X22))
   t111 <- trp(X11, X1); t112 <- trp(X11, X2); t122 <- trp(X1, X22); t222 <- trp(X22, X2)
   t1111 <- trp(X11, X11); t1112 <- trp(X11, X12); t1122 <- trp(X11, X22)
   t1212 <- trp(X12, X12); t1222 <- trp(X12, X22); t2222 <- trp(X22, X22)
@@ -282,15 +293,28 @@ lrcq_score <- function(w, null, se_wald, G, R, A, wpl, tags, s, Gam, Tm, tol = 1
   GR <- G * t(Rt)
   a1 <- rowSums((GR %*% A) * GR); c1 <- rowSums((GR %*% R) * GR); b <- rowSums(G * t(Rt^2))
   k2 <- pmax(se_wald^2 + 2 * (t22 * (2 * d * a1 + d^2 * b^2) + 2 * t12 * d * c1), 0)
+  # negative null: nonnegative SNP vector closest to the plug-in with a_t'x = null
+  Ax <- vector("list", p)
+  if (score_null == "nonneg" && !is.null(D) && any(null < 0)) {
+    xb <- pmax(wfull, 0)
+    Ad <- sum(s^2) * (G %*% D)
+    for (i in which(null < 0)) {
+      x <- proj_nonneg(xb, Ad[i, ], null[i])
+      if (is.null(x)) next
+      Ax[[i]] <- R %*% (x * R)
+      gR <- G[i, ] * R; gA <- G[i, ] * Ax[[i]]
+      k2[i] <- 2 * (t11 * trp(gR, gR) + 2 * t12 * trp(gR, gA) + t22 * trp(gA, gA))
+    }
+  }
   se <- sqrt(k2)
   z <- (w - null) / se
   pv <- stats::pnorm(z, lower.tail = FALSE)
   for (i in which(is.finite(z) & z > 1.5)) {
     g <- G[i, ]
     J <- if (tol > 0) which(abs(g) > tol * max(abs(g))) else seq_along(g)
-    rj <- Rt[J, i]
     Pm <- g[J] * R[J, J, drop = FALSE]
-    Q <- g[J] * (A[J, J, drop = FALSE] + d[i] * tcrossprod(rj))
+    Q <- if (is.null(Ax[[i]])) g[J] * (A[J, J, drop = FALSE] + d[i] * tcrossprod(Rt[J, i])) else
+      g[J] * Ax[[i]][J, J, drop = FALSE]
     PP <- Pm %*% Pm; QQ <- Q %*% Q; PQ <- Pm %*% Q
     k3 <- 8 * (trp(PP, Pm) * t111 + 3 * trp(PP, Q) * t112 + 3 * trp(Pm, QQ) * t122 +
                  trp(QQ, Q) * t222)
@@ -303,6 +327,17 @@ lrcq_score <- function(w, null, se_wald, G, R, A, wpl, tags, s, Gam, Tm, tol = 1
     }
   }
   list(se = se, z = z, p = pv)
+}
+
+# Nonnegative x closest (Euclidean) to xb with a'x = target: x = (xb - lambda a)_+,
+# lambda by root-finding (the KKT solution). NULL when no bracket is found.
+proj_nonneg <- function(xb, a, target) {
+  f <- function(l) sum(a * pmax(xb - l * a, 0)) - target
+  b <- 1; k <- 0
+  while ((f(b) > 0 || f(-b) < 0) && k < 60) { b <- b * 2; k <- k + 1 }
+  if (k >= 60) return(NULL)
+  l <- stats::uniroot(f, c(-b, b), tol = 1e-13)$root
+  pmax(xb - l * a, 0)
 }
 
 #' Kurtosis-matched upper-tail p-value

@@ -113,7 +113,7 @@ test_that("score-type tag test: exact update, no Wald cap, calibrated null", {
   Tm <- scale_matrix(n, gc$gcov, M); Dm <- ld_r2(R)
   G <- solve(crossprod(Dm[, P]) * sum((n * diag(gc$gcov) / M)^2), t(Dm[, P]))
   wf <- numeric(40); wf[P] <- 5; A <- R %*% (wf * R)
-  sc <- lrcpq:::lrcq_score(f$w, 5, f$se, G, R, A, rep(5, length(P)), P,
+  sc <- lrcpq:::lrcq_score(f$w, 5, f$se, G, R, A, wf, P,
                            n * diag(gc$gcov) / M, C, Tm)
   expect_equal(sc$se, f$se, tolerance = 1e-10)
   # one strongly enriched SNP: the Wald z is capped, the score z is not
@@ -133,4 +133,25 @@ test_that("score-type tag test: exact update, no Wald cap, calibrated null", {
   # kurtosis-matched p: normal limit and heavier tail than the normal
   expect_equal(p_kurt(2, 0, 1, 1e-9, 1e-12), stats::pnorm(-2))
   expect_gt(p_kurt(4, 0, 1, 1, 2), stats::pnorm(-4))
+})
+
+test_that("nonnegative score null for negative projected nulls (0.3.1)", {
+  set.seed(3)
+  xb <- c(0, 2, 5, 0.5, 1); a <- c(0.4, -0.3, 0.2, -0.6, 0.1)
+  x <- lrcpq:::proj_nonneg(xb, a, -1.2)
+  expect_true(all(x >= 0))
+  expect_equal(sum(a * x), -1.2, tolerance = 1e-10)
+  # in a window with tags whose W0 < 0, "nonneg" changes only those tags
+  R <- make_ld_ar1(60, 0.85)[[1]]; q <- 15
+  gc <- make_gcov(q, h2 = rep(0.3, q), type = "cluster", rg = 0.4, n_clusters = 3)
+  C <- make_intercept(q, overlap = 1, rp = 0.2); n <- rep(3e5, q); M <- 2e4
+  Z <- simulate_lrcpq(list(R), n = n, w = rep(1, 60), gcov = gc$gcov, intercept = C, M = M)$Z
+  P <- prune_ld(R, 0.5)
+  fn <- lrcq_window(Z, R, n, gc$gcov, M, C, tags = P, skew = TRUE, N_ref = 300)
+  fp <- lrcq_window(Z, R, n, gc$gcov, M, C, tags = P, skew = TRUE, N_ref = 300,
+                    score_null = "plugin")
+  pos <- fn$mu1 >= 0
+  expect_equal(fn$score$gt1$se[pos], fp$score$gt1$se[pos])
+  expect_equal(fn$score$gt0$se, fp$score$gt0$se)
+  if (any(!pos)) expect_false(isTRUE(all.equal(fn$score$gt1$se[!pos], fp$score$gt1$se[!pos])))
 })

@@ -1,7 +1,7 @@
 Package: lrcpq
 Type: Package
 Title: Phenome-Wide Genetic-Effect Enrichment and Correlation from GWAS Summary Statistics
-Version: 0.3.0
+Version: 0.3.1
 Authors@R: c(
     person("Lane", "Chen", role = c("aut", "cre"), email = "lanechenhku@gmail.com"),
     person("Pak Chung", "Sham", role = "aut"))
