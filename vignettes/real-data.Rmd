@@ -158,7 +158,8 @@ for (chr in 1:22) {
 With OpenBLAS, one chromosome takes minutes to an hour, depending on its
 size. Results in the LRCQ paper:
 
-- 921 tags (661 loci) enriched above the background at FDR 5%;
+- 881 tags (638 loci) enriched above the background at FDR 5%, 222 of them
+  at Bonferroni level;
 - 1,799 tags (1,145 loci) with W > 0 at FDR 5%;
 - phenome-wide h2 is 3-5 times enriched in coding, conserved, TSS and 5' UTR
   annotations (`lrcq_annot_regression()`), and depleted in repressed
